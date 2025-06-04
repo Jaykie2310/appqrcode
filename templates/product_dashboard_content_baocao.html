@@ -1,0 +1,48 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Báo Cáo và Thống Kê{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <h4><i class="fas fa-chart-pie"></i> Báo Cáo và Thống Kê</h4>
+    </div>
+    <div class="card-body">
+        <p>Khu vực này sẽ hiển thị các báo cáo chi tiết về doanh thu, đơn hàng, sản phẩm bán chạy, tồn kho, và các phân tích khác.</p>
+        <p><em>(Chức năng đang được phát triển. Bạn có thể tích hợp các thư viện biểu đồ như Chart.js hoặc Google Charts vào đây.)</em></p>
+        
+        {# Ví dụ cấu trúc cho biểu đồ sau này #}
+        {# <div class="row">
+            <div class="col-md-6">
+                <h5>Doanh thu theo tháng</h5>
+                <canvas id="doanhThuChart"></canvas>
+            </div>
+            <div class="col-md-6">
+                <h5>Sản phẩm bán chạy</h5>
+                <ul id="topProductsList"></ul>
+            </div>
+        </div> #}
+    </div>
+</div>
+{# 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Ví dụ Chart.js
+    // const ctx = document.getElementById('doanhThuChart');
+    // if (ctx) {
+    // new Chart(ctx, {
+    // type: 'bar',
+    // data: {
+    // labels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6'],
+    // datasets: [{
+    // label: 'Doanh thu (VNĐ)',
+    // data: [12000000, 19000000, 30000000, 50000000, 2000000, 30000000],
+    // borderWidth: 1
+    //         }]
+    //       },
+    // options: { scales: { y: { beginAtZero: true } } }
+    //     });
+    // }
+</script>
+#}
+{% endblock %}

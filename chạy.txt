@@ -1,0 +1,7 @@
+git add .
+git commit -m "Your meaningful commit message"
+git push origin main
+cd D:\my_flask_app\my-qr-mobile-app
+npx cap sync android
+npx cap open android
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>

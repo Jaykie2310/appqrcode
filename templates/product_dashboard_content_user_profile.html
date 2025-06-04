@@ -1,0 +1,22 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Thông Tin Cá Nhân{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <h4><i class="fas fa-user-edit"></i> Thông Tin Tài Khoản</h4>
+    </div>
+    <div class="card-body">
+        {% if user_info %}
+            <p><strong>Tên đăng nhập:</strong> {{ user_info[0] }}</p>
+            <p><strong>Email:</strong> {{ user_info[1] }}</p>
+            <p><strong>Số điện thoại:</strong> {{ user_info[2] if user_info[2] else 'Chưa cập nhật' }}</p>
+            {# Thêm các thông tin khác và form để chỉnh sửa nếu cần #}
+            <a href="#" class="btn btn-secondary mt-3"><i class="fas fa-key"></i> Đổi mật khẩu</a>
+        {% else %}
+            <p class="text-danger">Không tìm thấy thông tin người dùng.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

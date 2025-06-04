@@ -1,0 +1,25 @@
+# D:/my_flask_app/my-qr-mobile-app/.gitignore
+
+# Dependencies
+/node_modules/
+
+# Build output (ví dụ: thư mục www nếu nó là output của một framework web)
+# /www/  <- KHÔNG ignore thư mục này nếu nó chứa file index.html cơ bản bạn muốn commit
+
+# Native project build artifacts
+/android/app/build/
+/android/build/
+/android/.gradle/
+/android/gradle/
+/android/app/src/main/assets/capacitor.config.json # Sẽ được tạo bởi npx cap sync
+/android/app/src/main/assets/public/ # Sẽ được tạo bởi npx cap sync
+local.properties # Của Android Studio
+
+# iOS (nếu có)
+# /ios/Pods/
+# /ios/DerivedData/
+# /ios/build/
+# .DS_Store
+
+# Capacitor
+.capacitor/

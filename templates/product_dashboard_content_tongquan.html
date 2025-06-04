@@ -1,0 +1,39 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Danh mục lựa chọn{% endblock %} {# Đổi title cho phù hợp #}
+
+{% block product_dashboard_content %}
+<div class="category-column-grid">
+    <a href="{{ url_for('manage_category_placeholder', category_slug='thuc-pham') }}" class="category-column-card">
+        <img src="https://png.pngtree.com/thumb_back/fw800/background/20250408/pngtree-aisle-full-of-packaged-food-products-in-supermarket-image_17172476.jpg" alt="Quản lý Hàng Thực phẩm" class="category-card-image">
+        <div class="category-card-overlay">
+            <h3 class="category-card-title">Quản lý Hàng Thực phẩm</h3>
+        </div>
+    </a>
+
+    <a href="{{ url_for('manage_category_placeholder', category_slug='gia-dung') }}" class="category-column-card">
+        <img src="https://blog.dktcdn.net/files/nguon-hang-do-gia-dung-gia-re-1-e1507186249781.jpg" alt="Quản lý Đồ gia dụng" class="category-card-image">
+        <div class="category-card-overlay">
+            <h3 class="category-card-title">Quản lý Đồ gia dụng</h3>
+        </div>
+    </a>
+
+    <a href="{{ url_for('manage_category_placeholder', category_slug='thoi-trang') }}" class="category-column-card">
+        <img src="https://spacet-release.s3.ap-southeast-1.amazonaws.com/img/blog/2023-10-03/anh-sang-hop-ly-tao-su-dang-cap-651beab8c9649b0ef5ad95c2.webp" alt="Quản lý Thời trang" class="category-card-image">
+        <div class="category-card-overlay">
+            <h3 class="category-card-title">Quản lý Thời trang</h3>
+        </div>
+    </a>
+
+    <a href="{{ url_for('manage_category_placeholder', category_slug='may-tinh-linh-kien') }}" class="category-column-card">
+        <img src="https://maytinhgiaredanang.com/wp-content/uploads/2024/04/ve-sinh-may-tinh-pc-tai-da-nang.jpg" alt="Máy tính & Linh kiện" class="category-card-image">
+        <div class="category-card-overlay">
+            <h3 class="category-card-title">Máy tính & Linh kiện</h3>
+        </div>
+    </a>
+</div>
+
+<div class="welcome-message" style="text-align: center; padding-top: 20px; margin-top: 20px;">
+    <p style="font-size: 1.1em; color: var(--text-muted);">Chọn một danh mục sản phẩm để bắt đầu quản lý, hoặc <a href="{{ url_for('product_dashboard_overview_detail') }}">xem tổng quan hệ thống chi tiết</a> (chỉ trên Desktop).</p>
+</div>
+{% endblock %}

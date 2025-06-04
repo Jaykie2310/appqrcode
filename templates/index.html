@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Management - Giải pháp quản lý sản phẩm thông minh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a4d2e',
+                        secondary: '#2d9596',
+                        accent: '#9ad0c2',
+                        background: '#f2f7f5',
+                        surface: '#ffffff',
+                        'surface-hover': '#f8fafc'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'custom': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'custom-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .animate-slide-in {
+            animation: slideIn 0.5s ease-out forwards;
+        }
+        .feature-card {
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .feature-card.visible {
+            opacity: 1;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .hover-scale {
+            transition: transform 0.3s ease;
+        }
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            background-color: rgba(45, 149, 150, 0.2);
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+                // Change menu icon
+                const icon = mobileMenuButton.querySelector('i');
+                if (mobileMenu.classList.contains('hidden')) {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                } else {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                }
+            });
+
+            // Close mobile menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!mobileMenuButton.contains(e.target) && !mobileMenu.contains(e.target)) {
+                    mobileMenu.classList.add('hidden');
+                    const icon = mobileMenuButton.querySelector('i');
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            });
+
+            // Animate features on scroll
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.1
+            });
+
+            document.querySelectorAll('.feature-card').forEach(card => {
+                observer.observe(card);
+            });
+
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                        // Close mobile menu if open
+                        if (!mobileMenu.classList.contains('hidden')) {
+                            mobileMenu.classList.add('hidden');
+                            const icon = mobileMenuButton.querySelector('i');
+                            icon.classList.remove('fa-times');
+                            icon.classList.add('fa-bars');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body class="bg-background">
+    <!-- Header -->
+    <header class="bg-primary text-white relative z-50">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-xl font-bold">QR Code Management</div>
+
+                <!-- Mobile menu button -->
+                <button id="mobile-menu-button" class="md:hidden text-white focus:outline-none">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+
+                <!-- Desktop menu -->
+                <div class="hidden md:flex space-x-6">
+                    <a href="#" class="hover:text-accent transition">Trang chủ</a>
+                    <a href="#features" class="hover:text-accent transition">Tính năng</a>
+                    <a href="#" class="hover:text-accent transition">Giới thiệu</a>
+                    <a href="#" class="hover:text-accent transition">Liên hệ</a>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="{{ url_for('login_page') }}" class="bg-secondary px-4 py-2 rounded-lg hover:bg-opacity-90 transition">Đăng nhập</a>
+                    <a href="{{ url_for('register') }}" class="bg-secondary px-4 py-2 rounded-lg hover:bg-opacity-90 transition">Đăng ký</a>
+                </div>
+            </div>
+
+            <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 right-0 bg-primary shadow-lg animate-slide-in">
+                <div class="px-6 py-4 space-y-4">
+                    <a href="{{ url_for('index') }}" class="block hover:text-accent transition">Trang chủ</a> {# Giả sử route trang chủ là 'index' #}
+                    <a href="#features" class="block hover:text-accent transition">Tính năng</a>
+
+                    <a href="{{ url_for('login_page') }}" class="block bg-secondary px-4 py-2 rounded-lg hover:bg-opacity-90 transition text-center">Đăng nhập</a>
+                    <a href="{{ url_for('register') }}" class="block bg-secondary px-4 py-2 rounded-lg hover:bg-opacity-90 transition text-center">Đăng ký</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="bg-primary text-white py-12 md:py-20 relative overflow-hidden">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10">
+            <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')"></div>
+        </div>
+        <div class="container mx-auto px-4 sm:px-6 relative">
+            <div class="max-w-3xl mx-auto text-center">
+                <div class="animate-fade-in space-y-6">
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
+                        Giải pháp quản lý sản phẩm bằng QR Code hiệu quả
+                    </h1>
+                    <p class="text-base sm:text-lg text-gray-200 leading-relaxed max-w-2xl mx-auto">
+                        Nâng cao hiệu suất, theo dõi dễ dàng, và tối ưu hóa quy trình kinh doanh của bạn
+                    </p>
+                    <div class="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 px-4 sm:px-0">
+                        <a href="#" class="w-full sm:w-auto bg-secondary text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg hover:bg-opacity-90 transition transform hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center space-x-2 text-base sm:text-lg font-medium">
+                            <span>Sử dụng miễn phí</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                        <a href="#features" class="w-full sm:w-auto bg-white bg-opacity-10 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg hover:bg-opacity-20 transition transform hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center space-x-2 text-base sm:text-lg font-medium">
+                            <span>Tìm hiểu thêm</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-12 md:py-20">
+        <div class="container mx-auto px-4 sm:px-6">
+            <div class="text-center max-w-3xl mx-auto mb-12 animate-fade-in">
+                <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-4">Các tính năng nổi bật</h2>
+                <p class="text-gray-600">Giải pháp toàn diện cho việc quản lý sản phẩm của bạn</p>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-card bg-surface p-6 sm:p-8 rounded-xl shadow-custom hover:shadow-custom-lg">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-secondary bg-opacity-10 rounded-lg p-3">
+                            <i class="fas fa-qrcode text-3xl text-secondary"></i>
+                        </div>
+                        <h3 class="text-lg sm:text-xl font-semibold ml-4 text-primary">Quản lý mã QR</h3>
+                    </div>
+                    <p class="text-gray-600 leading-relaxed">
+                        Tạo, in và quản lý mã QR dễ dàng cho từng sản phẩm của bạn. Tích hợp thông tin sản phẩm một cách thông minh.
+                    </p>
+                    <div class="mt-4">
+                        <a href="#" class="inline-flex items-center text-secondary hover:text-primary transition-colors duration-200">
+                            <span class="font-medium">Tìm hiểu thêm</span>
+                            <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card bg-surface p-6 sm:p-8 rounded-xl shadow-custom hover:shadow-custom-lg">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-secondary bg-opacity-10 rounded-lg p-3">
+                            <i class="fas fa-warehouse text-3xl text-secondary"></i>
+                        </div>
+                        <h3 class="text-lg sm:text-xl font-semibold ml-4 text-primary">Quản lý kho hàng</h3>
+                    </div>
+                    <p class="text-gray-600 leading-relaxed">
+                        Theo dõi số lượng, vị trí và trạng thái sản phẩm trong kho. Tự động cập nhật khi có thay đổi.
+                    </p>
+                    <div class="mt-4">
+                        <a href="#" class="inline-flex items-center text-secondary hover:text-primary transition-colors duration-200">
+                            <span class="font-medium">Tìm hiểu thêm</span>
+                            <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card bg-surface p-6 sm:p-8 rounded-xl shadow-custom hover:shadow-custom-lg">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-secondary bg-opacity-10 rounded-lg p-3">
+                            <i class="fas fa-chart-line text-3xl text-secondary"></i>
+                        </div>
+                        <h3 class="text-lg sm:text-xl font-semibold ml-4 text-primary">Báo cáo và thống kê</h3>
+                    </div>
+                    <p class="text-gray-600 leading-relaxed">
+                        Xem báo cáo chi tiết về sản phẩm và kho hàng của bạn. Phân tích dữ liệu để tối ưu hoạt động.
+                    </p>
+                    <div class="mt-4">
+                        <a href="#" class="inline-flex items-center text-secondary hover:text-primary transition-colors duration-200">
+                            <span class="font-medium">Tìm hiểu thêm</span>
+                            <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Preview -->
+    <section class="py-12 md:py-20 bg-gray-50">
+        <div class="container mx-auto px-4 sm:px-6">
+            <div class="text-center max-w-3xl mx-auto mb-12 animate-fade-in">
+                <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-4">Giao diện quản lý trực quan</h2>
+                <p class="text-gray-600">Tất cả thông tin quan trọng trong tầm tay bạn</p>
+            </div>
+            <div class="bg-surface rounded-xl shadow-custom-lg p-4 sm:p-6 animate-fade-in overflow-hidden">
+                <div class="flex flex-col lg:flex-row">
+                    <!-- Sidebar -->
+                    <div class="w-full lg:w-64 bg-primary rounded-lg p-4 text-white mb-6 lg:mb-0 lg:mr-6">
+                        <div class="flex lg:block items-center justify-between mb-6">
+                            <div class="flex items-center">
+                                <i class="fas fa-qrcode text-2xl text-accent"></i>
+                                <span class="ml-3 font-semibold text-lg">QR Manager</span>
+                            </div>
+                            <button class="lg:hidden text-white focus:outline-none">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="p-3 bg-secondary bg-opacity-20 rounded-lg flex items-center">
+                                <i class="fas fa-home text-accent"></i>
+                                <span class="ml-3">Dashboard</span>
+                            </div>
+                            <div class="p-3 hover:bg-secondary hover:bg-opacity-20 rounded-lg transition cursor-pointer flex items-center group">
+                                <i class="fas fa-qrcode text-accent group-hover:scale-110 transition-transform"></i>
+                                <span class="ml-3">Quản lý QR</span>
+                            </div>
+                            <div class="p-3 hover:bg-secondary hover:bg-opacity-20 rounded-lg transition cursor-pointer flex items-center group">
+                                <i class="fas fa-box text-accent group-hover:scale-110 transition-transform"></i>
+                                <span class="ml-3">Sản phẩm</span>
+                            </div>
+                            <div class="p-3 hover:bg-secondary hover:bg-opacity-20 rounded-lg transition cursor-pointer flex items-center group">
+                                <i class="fas fa-chart-bar text-accent group-hover:scale-110 transition-transform"></i>
+                                <span class="ml-3">Báo cáo & thống kê </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1">
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+                            <div class="stat-card bg-surface p-6 rounded-lg hover-scale border border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-lg font-semibold text-primary">Tổng số QR</h3>
+                                    <div class="bg-secondary bg-opacity-10 p-2 rounded-lg">
+                                        <i class="fas fa-qrcode text-secondary"></i>
+                                    </div>
+                                </div>
+                                <p class="text-3xl font-bold text-secondary mt-2">1,234</p>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    <i class="fas fa-arrow-up text-green-500"></i>
+                                    <span class="ml-1">12% so với tháng trước</span>
+                                </p>
+                            </div>
+                            <div class="stat-card bg-surface p-6 rounded-lg hover-scale border border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-lg font-semibold text-primary">Sản phẩm</h3>
+                                    <div class="bg-secondary bg-opacity-10 p-2 rounded-lg">
+                                        <i class="fas fa-box text-secondary"></i>
+                                    </div>
+                                </div>
+                                <p class="text-3xl font-bold text-secondary mt-2">567</p>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    <i class="fas fa-arrow-up text-green-500"></i>
+                                    <span class="ml-1">8% so với tháng trước</span>
+                                </p>
+                            </div>
+                            <div class="stat-card bg-surface p-6 rounded-lg hover-scale border border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-lg font-semibold text-primary">Quét QR</h3>
+                                    <div class="bg-secondary bg-opacity-10 p-2 rounded-lg">
+                                        <i class="fas fa-chart-line text-secondary"></i>
+                                    </div>
+                                </div>
+                                <p class="text-3xl font-bold text-secondary mt-2">8,901</p>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    <i class="fas fa-arrow-up text-green-500"></i>
+                                    <span class="ml-1">15% so với tháng trước</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="bg-surface p-6 rounded-lg border border-gray-100">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-xl font-semibold text-primary">Hoạt động gần đây</h3>
+                                <button class="text-secondary hover:text-primary transition-colors">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </button>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex items-center p-4 bg-gray-50 rounded-lg hover-scale cursor-pointer border border-transparent hover:border-secondary hover:border-opacity-20 transition-all duration-200">
+                                    <div class="bg-secondary bg-opacity-10 p-3 rounded-lg">
+                                        <i class="fas fa-qrcode text-secondary"></i>
+                                    </div>
+                                    <div class="ml-4 flex-1">
+                                        <div class="flex items-center justify-between">
+                                            <p class="font-semibold text-primary">QR mới được tạo</p>
+                                            <span class="text-sm text-gray-500">2 phút trước</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">Mã QR cho sản phẩm "Smartphone X"</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center p-4 bg-gray-50 rounded-lg hover-scale cursor-pointer border border-transparent hover:border-secondary hover:border-opacity-20 transition-all duration-200">
+                                    <div class="bg-secondary bg-opacity-10 p-3 rounded-lg">
+                                        <i class="fas fa-box text-secondary"></i>
+                                    </div>
+                                    <div class="ml-4 flex-1">
+                                        <div class="flex items-center justify-between">
+                                            <p class="font-semibold text-primary">Sản phẩm mới thêm vào kho</p>
+                                            <span class="text-sm text-gray-500">15 phút trước</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">Đã nhập 200 sản phẩm vào kho A</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="py-12 md:py-20 bg-primary text-white relative overflow-hidden">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10">
+            <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')"></div>
+        </div>
+        <div class="container mx-auto px-4 sm:px-6 relative">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-6">Sẵn sàng tối ưu hóa quy trình kinh doanh của bạn?</h2>
+                <p class="text-lg md:text-xl text-gray-200 mb-8">
+                    Bắt đầu sử dụng QR Code Management ngay hôm nay và trải nghiệm sự khác biệt
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <a href="#" class="w-full sm:w-auto bg-white text-primary px-8 py-4 rounded-lg hover:bg-opacity-90 transition transform hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center space-x-2 font-medium">
+                        <span>Sử dụng miễn phí</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <a href="#" class="w-full sm:w-auto bg-transparent border-2 border-white px-8 py-4 rounded-lg hover:bg-white hover:text-primary transition transform hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center space-x-2 font-medium">
+                        <span>Xem demo</span>
+                        <i class="fas fa-play"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-primary bg-opacity-90 text-white py-12 border-t border-white border-opacity-10">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <h4 class="text-xl font-bold mb-4">QR Code Management</h4>
+                    <p class="text-gray-300">
+                        Giải pháp quản lý sản phẩm thông minh cho doanh nghiệp của bạn
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Liên kết</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li><a href="#" class="hover:text-accent">Trang chủ</a></li>
+                        <li><a href="#" class="hover:text-accent">Tính năng</a></li>
+                        <li><a href="#" class="hover:text-accent">Liên hệ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Hỗ trợ</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li><a href="#" class="hover:text-accent">FAQ</a></li>
+                        <li><a href="#" class="hover:text-accent">Hướng dẫn</a></li>
+                        <li><a href="#" class="hover:text-accent">Điều khoản</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Liên hệ</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li><i class="fas fa-envelope mr-2"></i> lenam23102411@gmail.com</li>
+                        <li><i class="fas fa-phone mr-2"></i> (84) 904-959-108</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
+                <p>&copy; 2024 QR Code Management. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

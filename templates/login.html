@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - QR Code Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a4d2e',
+                        secondary: '#2d9596',
+                        accent: '#9ad0c2',
+                        background: '#f2f7f5'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .login-bg {
+            background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239ad0c2" fill-opacity="0.1"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+    </style>
+</head>
+<body class="bg-background min-h-screen flex items-center justify-center p-4 login-bg">
+    <div class="w-full max-w-md">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <a href="{{ url_for('index') }}" class="inline-block"> {# Sử dụng url_for cho link trang chủ nếu có #}
+                <h1 class="text-3xl font-bold text-primary flex items-center justify-center">
+                    <i class="fas fa-qrcode mr-2"></i>
+                    QR Manager
+                </h1>
+            </a>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 transition-transform hover:scale-[1.01]">
+            <h2 class="text-2xl font-bold text-primary mb-6 text-center">Đăng nhập</h2>
+
+            {% if error %}
+                <div class="mb-4 p-3 bg-red-100 text-red-700 border border-red-300 rounded-lg text-sm">
+                    <i class="fas fa-exclamation-circle mr-2"></i>{{ error }}
+                </div>
+            {% endif %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="mb-4 p-3 bg-{{ 'green' if category == 'success' else 'blue' }}-100 text-{{ 'green' if category == 'success' else 'blue' }}-700 border border-{{ 'green' if category == 'success' else 'blue' }}-300 rounded-lg text-sm">
+                            {% if category == 'success' %}<i class="fas fa-check-circle mr-2"></i>{% else %}<i class="fas fa-info-circle mr-2"></i>{% endif %}
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('login_page') }}" class="space-y-6">
+                <!-- Email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2" for="email">
+                        Email
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-envelope text-gray-400"></i>
+                        </div>
+                        <input type="email" id="email" name="email" value="{{ email_value if email_value else '' }}"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors"
+                            placeholder="your@email.com" required>
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2" for="password">
+                        Mật khẩu
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" id="password" name="password"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors"
+                            placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <!-- Remember & Forgot -->
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember" name="remember" class="h-4 w-4 text-secondary focus:ring-secondary border-gray-300 rounded">
+                        <label for="remember" class="ml-2 text-gray-700">Ghi nhớ đăng nhập</label>
+                    </div>
+                    <a href="#" class="text-secondary hover:text-primary transition-colors">Quên mật khẩu?</a>
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit" class="w-full bg-secondary text-white py-2 px-4 rounded-lg hover:bg-opacity-90 transition-colors flex items-center justify-center space-x-2">
+                    <span>Đăng nhập</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white text-gray-500">Hoặc</span>
+                </div>
+            </div>
+
+            <!-- Register Link -->
+            <p class="text-center text-gray-600">
+                Chưa có tài khoản?
+                <a href="{{ url_for('register') }}" class="text-secondary hover:text-primary transition-colors font-medium">
+                    Đăng ký ngay
+                </a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#1a4d2e"> {# Changed to new primary color #}
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="QR Manager"> {# Changed title #}
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> {# Changed font to Inter #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        :root {
+            --category-background-image: {% if category_bg_image %}url('{{ category_bg_image | e }}'){% else %}none{% endif %};
+            --sidebar-bg-color: #1a4d2e; /* Dark green from image */
+            --sidebar-text-color: #ffffff;
+            --sidebar-active-bg-color: #2d9596; /* Lighter green for active, from Tailwind secondary */
+            --sidebar-hover-bg-color: #257a7b; /* Slightly darker than active for hover */
+        }
+    </style>
+    <title>{% block page_specific_title %}QR Manager{% endblock %}</title> {# Changed default title #}
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <button class="sidebar-toggle desktop-only-element" id="sidebarToggleDesktop" aria-label="Mở/Đóng menu desktop">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="header-title">
+                <!-- Removed icon and title from here, will be in sidebar or main content -->
+                <h1>
+                    {% if category_display_name %}
+                        {{ category_display_name }}
+                    {% elif page_specific_title and page_specific_title not in ["QR Manager", "Dashboard"] %}
+                         {% block header_page_title %}{{ self.page_specific_title() }}{% endblock %}
+                    {% else %}
+                        Dashboard <!-- Default title for main area -->
+                    {% endif %}
+                </h1>
+            </div>
+            <div class="header-user">
+                {% if session.username %}
+                    <i class="fas fa-user-circle"></i>
+                    <span class="desktop-only-element">Chào, <strong>{{ session.username.split('@')[0] }}</strong></span> {# Display part of email #}
+                    <a href="{{ url_for('logout') }}" title="Đăng xuất"><i class="fas fa-sign-out-alt"></i></a>
+                {% else %}
+                    <a href="{{ url_for('login_page') }}" title="Đăng nhập">Đăng nhập</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <aside class="dashboard-sidebar desktop-only-element" id="dashboardSidebar">
+            <div class="sidebar-app-title">
+                <i class="fas fa-th-large"></i> <!-- Icon from image -->
+                <span>QR Manager</span>
+            </div>
+            <nav>
+                 <ul>
+                    {# Route for Dashboard should be the one showing stats, e.g., product_dashboard_overview_detail #}
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'product_dashboard_overview_detail' else '' }}">
+                        <a href="{{ url_for('product_dashboard_overview_detail') }}">
+                            <i class="fas fa-home"></i><span>Dashboard</span>
+                        </a>
+                    </li>
+                    {# Route for Quản lý QR - assuming qr_generator_tool for now, adjust if different #}
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'qr_generator_tool' else '' }}">
+                        <a href="{{ url_for('qr_generator_tool') }}">
+                            <i class="fas fa-qrcode"></i><span>Quản lý QR</span>
+                        </a>
+                    </li>
+                    {# Route for Sản phẩm - pd_ton_kho_quan_ly shows product list #}
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_ton_kho_quan_ly' or request.endpoint == 'pd_nhap_san_pham_moi' else '' }}">
+                        <a href="{{ url_for('pd_ton_kho_quan_ly') }}">
+                            <i class="fas fa-box-archive"></i><span>Sản phẩm</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_bao_cao_xem' else '' }}">
+                        <a href="{{ url_for('pd_bao_cao_xem') }}">
+                            <i class="fas fa-chart-line"></i><span>Báo cáo & thống kê</span>
+                        </a>
+                    </li>
+
+                    <!-- Example of a submenu, if needed in future, adapt from old structure -->
+                    <!--
+                    <li class="sidebar-item has-submenu {{ 'active' if request.endpoint in ['pd_nhap_kho_quet_page', 'pd_xuat_kho_quet_page'] else '' }}">
+                        <a href="#"><i class="fas fa-exchange-alt"></i><span>Nhập/Xuất Kho</span> <i class="fas fa-angle-down arrow"></i></a>
+                        <ul class="submenu">
+                            <li><a href="{{ url_for('pd_nhap_kho_quet_page', category_slug='thuc-pham') }}">Nhập kho (Quét)</a></li>
+                            <li><a href="{{ url_for('pd_xuat_kho_quet_page') }}">Xuất kho (Quét)</a></li>
+                        </ul>
+                    </li>
+                    -->
+                    <li class="sidebar-item sidebar-item-bottom {{ 'active' if request.endpoint == 'pd_user_profile' else '' }}">
+                        <a href="{{ url_for('pd_user_profile') }}"><i class="fas fa-user-cog"></i><span>Tài khoản</span></a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="dashboard-main {% if category_bg_image %}has-category-background{% endif %}" id="dashboardMainContent">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} shadow-md">
+                            {% if category == 'success' %}
+                                <i class="fas fa-check-circle mr-2"></i>
+                            {% elif category == 'danger' %}
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                            {% elif category == 'warning' %}
+                                <i class="fas fa-exclamation-circle mr-2"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle mr-2"></i>
+                            {% endif %}
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block product_dashboard_content %}
+            {% endblock %}
+        </main>
+
+       {# Mobile navigation - kept existing logic, can be simplified if needed #}
+       {% if mobile_nav_type == 'main_dashboard_nav' %}
+        <nav class="mobile-bottom-nav mobile-only-element">
+            <a href="{{ url_for('product_dashboard_overview_detail') }}" class="nav-item {{ 'active' if request.endpoint == 'product_dashboard_overview_detail' else '' }}"> {# Link to Dashboard #}
+                <i class="fas fa-home"></i>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="{{ url_for('pd_ton_kho_quan_ly') }}" class="nav-item {{ 'active' if request.endpoint == 'pd_ton_kho_quan_ly' else '' }}"> {# Link to Sản phẩm #}
+                <i class="fas fa-box-archive"></i>
+                <span class="nav-text">Sản phẩm</span>
+            </a>
+            <a href="{{ url_for('render_mobile_scan_page') }}" class="nav-item nav-item-main {{ 'active' if request.endpoint == 'render_mobile_scan_page' else '' }}">
+                <div class="icon-wrapper">
+                    <i class="fas fa-qrcode"></i>
+                    <span class="nav-text">Quét Mã</span>
+                </div>
+            </a>
+            <a href="{{ url_for('pd_bao_cao_xem') }}" class="nav-item {{ 'active' if request.endpoint == 'pd_bao_cao_xem' else '' }}">
+                <i class="fas fa-chart-line"></i>
+                <span class="nav-text">Báo cáo</span>
+            </a>
+            <a href="{{ url_for('pd_user_profile') }}" class="nav-item {{ 'active' if request.endpoint == 'pd_user_profile' else '' }}">
+                <i class="fas fa-user"></i>
+                <span class="nav-text">Tôi</span>
+            </a>
+        </nav>
+        {% elif mobile_nav_type == 'category_detail_nav' %}
+        {# This nav type might need re-evaluation based on new sidebar structure #}
+        <nav class="mobile-bottom-nav mobile-only-element">
+            <a href="{{ url_for('product_dashboard_overview_detail') }}" class="nav-item">
+                <i class="fas fa-arrow-left"></i> <span class="nav-text">Dashboard</span>
+            </a>
+             <a href="{{ url_for('render_mobile_scan_page', category_slug=category_slug if category_slug else None ) }}" class="nav-item nav-item-main {{ 'active' if request.endpoint == 'render_mobile_scan_page' else '' }}">
+                <div class="icon-wrapper">
+                    <i class="fas fa-qrcode"></i>
+                    <span class="nav-text">Quét Mã</span>
+                </div>
+            </a>
+            <a href="{{ url_for('pd_ton_kho_quan_ly', category_slug=category_slug if category_slug else None) }}" class="nav-item">
+                 <i class="fas fa-boxes-stacked"></i><span class="nav-text">Tồn kho</span>
+            </a>
+        </nav>
+        {% endif %}
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarItemsWithSubmenu = document.querySelectorAll('.dashboard-sidebar .sidebar-item.has-submenu > a');
+        sidebarItemsWithSubmenu.forEach(item => {
+            item.addEventListener('click', function(event) {
+                event.preventDefault();
+                const parentLi = this.parentElement;
+                document.querySelectorAll('.dashboard-sidebar .sidebar-item.has-submenu.open').forEach(openItem => {
+                    if (openItem !== parentLi) {
+                        openItem.classList.remove('open');
+                    }
+                });
+                parentLi.classList.toggle('open');
+            });
+        });
+
+        const sidebarToggleDesktop = document.getElementById('sidebarToggleDesktop');
+        const dashboardContainer = document.querySelector('.dashboard-container');
+        const dashboardSidebar = document.getElementById('dashboardSidebar');
+
+        if (sidebarToggleDesktop && dashboardContainer && dashboardSidebar) {
+            // Function to toggle sidebar
+            function toggleSidebar() {
+                dashboardContainer.classList.toggle('sidebar-collapsed');
+                // Save state to localStorage
+                if (dashboardContainer.classList.contains('sidebar-collapsed')) {
+                    localStorage.setItem('sidebarState', 'collapsed');
+                } else {
+                    localStorage.setItem('sidebarState', 'expanded');
+                }
+            }
+
+            sidebarToggleDesktop.addEventListener('click', toggleSidebar);
+
+            // Check localStorage for saved state
+            if (localStorage.getItem('sidebarState') === 'collapsed') {
+                dashboardContainer.classList.add('sidebar-collapsed');
+            }
+        }
+    });
+    </script>
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}")
+                    .then(registration => { console.log('SW registered: ', registration.scope); })
+                    .catch(err => { console.log('SW registration failed: ', err); });
+            });
+        }
+    </script>
+</body>
+</html>

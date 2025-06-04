@@ -1,0 +1,26 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Xuất kho bằng mã{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Xuất Kho Bằng Quét Mã</h2>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Khu vực quét mã</h5>
+            <p class="card-text">Sử dụng camera của thiết bị để quét mã vạch hoặc mã QR của sản phẩm cần xuất kho.</p>
+
+            <div id="scanner-container" style="width: 100%; max-width: 500px; margin: auto; border: 1px solid #ccc; padding: 10px;">
+                <p class="text-center text-muted">Giao diện camera để quét mã sẽ hiển thị ở đây.</p>
+            </div>
+
+            <div class="mt-3">
+                <label for="scanned-result" class="form-label">Kết quả quét:</label>
+                <input type="text" id="scanned-result" class="form-control" readonly>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

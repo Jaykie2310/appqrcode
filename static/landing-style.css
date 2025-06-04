@@ -1,0 +1,316 @@
+/* static/landing-style.css */
+
+/* --- General & Variables --- */
+:root {
+    --primary-color: #0d6efd;
+    --primary-darker: #0b5ed7;
+    --secondary-color: #6c757d;
+    --header-dark-bg: #2F4F4F; /* Giống màu header của dashboard */
+    --light-bg: #f0f2f5; /* Giống màu nền page của dashboard */
+    --text-dark: #212529;
+    --text-light: #f8f9fa;
+    --border-color: #dee2e6;
+    --font-family: 'Roboto', sans-serif; /* Đồng bộ font với dashboard */
+}
+
+body {
+    font-family: var(--font-family);
+    margin: 0;
+    background-color: #fff; /* Nền trắng cho trang chủ */
+    color: var(--text-dark);
+    line-height: 1.6;
+}
+body.no-scroll { /* Dùng khi mobile sidebar mở */
+    overflow: hidden;
+}
+
+.container {
+    max-width: 1140px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 15px;
+    padding-right: 15px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.section {
+    padding: 60px 0;
+}
+.section.bg-light {
+    background-color: var(--light-bg);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+a {
+    text-decoration: none;
+    color: var(--primary-color);
+}
+a:hover {
+    color: var(--primary-darker);
+}
+
+/* --- Header (landing-header) --- */
+.landing-header {
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    padding: 15px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1020; /* Đảm bảo header nằm trên */
+}
+.landing-header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.logo a {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--header-dark-bg); /* Màu logo giống header dashboard */
+    text-decoration: none;
+}
+
+/* Nút mở Mobile Sidebar (Mặc định ẩn trên Desktop) */
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--header-dark-bg); 
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+}
+
+/* Menu Desktop (desktop-nav) */
+.desktop-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+.desktop-nav a {
+    color: var(--secondary-color);
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.desktop-nav a:hover {
+    color: var(--primary-color);
+}
+.auth-links a {
+    padding: 8px 18px;
+    border: 2px solid var(--primary-color);
+    border-radius: 50px;
+    font-size: 14px;
+}
+.auth-links a:first-child { /* Nút Tạo tài khoản */
+    color: var(--primary-color);
+}
+.auth-links a:last-child { /* Nút Đăng nhập */
+    background-color: var(--primary-color);
+    color: #fff;
+    margin-left: 10px;
+}
+.auth-links a:last-child:hover {
+    background-color: var(--primary-darker);
+    border-color: var(--primary-darker);
+    color: #fff;
+}
+
+/* --- Mobile Sidebar --- */
+.mobile-sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px; /* Ẩn ban đầu */
+    width: 280px;
+    height: 100%;
+    background-color: #fff;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+    z-index: 1030; /* Nằm trên cùng */
+    transition: left 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.mobile-sidebar.open {
+    left: 0; /* Hiện ra */
+}
+.mobile-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+.mobile-sidebar-title {
+    font-size: 22px; /* To hơn một chút */
+    color: var(--header-dark-bg);
+    margin: 0;
+    font-weight: 700;
+}
+.close-sidebar-btn {
+    background: none; border: none; font-size: 28px;
+    color: var(--secondary-color); cursor: pointer; padding: 0;
+}
+.mobile-sidebar-nav ul { list-style: none; padding: 0; margin: 0; }
+.mobile-sidebar-nav li a {
+    display: block; padding: 12px 0; font-size: 17px;
+    color: var(--text-dark); text-decoration: none;
+    transition: color 0.2s; font-weight: 500;
+}
+.mobile-sidebar-nav li a:hover { color: var(--primary-color); }
+
+.mobile-sidebar-auth {
+    margin-top: auto; padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex; flex-direction: column; gap: 10px;
+}
+.mobile-sidebar-auth .btn { display: block; width: 100%; padding: 10px 15px; text-align: center; border-radius: 50px; font-weight: 500; text-decoration: none; box-sizing: border-box; font-size: 15px;}
+.mobile-sidebar-auth .btn-primary { background-color: var(--primary-color); color: #fff; border: 2px solid var(--primary-color); }
+.mobile-sidebar-auth .btn-primary:hover { background-color: var(--primary-darker); border-color: var(--primary-darker); }
+.mobile-sidebar-auth .btn-outline { border: 2px solid var(--primary-color); color: var(--primary-color); }
+.mobile-sidebar-auth .btn-outline:hover { background-color: var(--primary-color); color: #fff; }
+
+.mobile-sidebar-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5); z-index: 1025; /* Dưới sidebar, trên nội dung */
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0s 0.3s;
+}
+.mobile-sidebar-overlay.open {
+    opacity: 1; visibility: visible;
+    transition: opacity 0.3s ease-in-out, visibility 0s 0s;
+}
+
+/* --- Hero Section --- */
+#hero {
+    background: linear-gradient(45deg, rgba(47, 79, 79, 0.85), rgba(13, 110, 253, 0.75)), url('https://www.toptal.com/designers/subtlepatterns/uploads/double-bubble-outline.png'); /* Hơi đậm hơn */
+    color: var(--text-light);
+    padding: 100px 0; /* Giảm padding một chút */
+    text-align: center;
+}
+#hero h1 { font-size: 42px; margin-bottom: 20px; }
+#hero .sub-headline { font-size: 18px; max-width: 650px; margin: 0 auto 30px; opacity: 0.9; }
+
+/* --- Features Section --- */
+#tinh-nang h2 { text-align: center; margin-bottom: 50px; font-size: 32px; }
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 25px; }
+.feature-item {
+    background-color: #fff; border: 1px solid var(--border-color); border-radius: 8px;
+    padding: 25px; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.feature-item:hover { transform: translateY(-5px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+.feature-item .fas { font-size: 36px; color: var(--primary-color); margin-bottom: 18px; }
+.feature-item h3 { font-size: 18px; margin-bottom: 10px; font-weight: 600; }
+.feature-item p { font-size: 15px; color: var(--text-muted); }
+
+
+/* --- Intro Section --- */
+.intro-row { display: flex; align-items: center; gap: 40px; }
+.intro-text { flex: 1; }
+#gioi-thieu h2 { font-size: 32px; margin-bottom: 20px; }
+#gioi-thieu ul { list-style: none; padding: 0; }
+#gioi-thieu ul li { margin-bottom: 12px; display: flex; align-items: flex-start; font-size: 16px; }
+#gioi-thieu ul li::before {
+    content: '\f058'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
+    color: #198754; margin-right: 12px; font-size: 18px; line-height: 1.6;
+}
+.button.primary {
+    display: inline-block; background-color: var(--primary-color); color: #fff;
+    padding: 10px 25px; border-radius: 50px; text-decoration: none;
+    font-weight: 500; transition: background-color 0.2s; margin-top: 15px; font-size: 15px;
+}
+.button.primary:hover { background-color: var(--primary-darker); }
+
+/* --- Contact Form --- */
+#lien-he h2, #lien-he .section-description { text-align: center; }
+#lien-he h2 { font-size: 32px; margin-bottom: 15px; }
+#lien-he .section-description { margin-bottom: 30px; font-size: 16px; color: var(--text-muted); }
+.contact-form { max-width: 550px; margin: 0 auto; }
+.contact-form input, .contact-form textarea {
+    width: 100%; padding: 12px; margin-bottom: 18px; border: 1px solid var(--border-color);
+    border-radius: 5px; font-family: var(--font-family); font-size: 15px; box-sizing: border-box;
+}
+.contact-form button {
+    width: 100%; padding: 12px; border: none; border-radius: 5px;
+    background-color: var(--primary-color); color: #fff; font-size: 17px;
+    font-weight: 600; cursor: pointer; transition: background-color 0.2s;
+}
+.contact-form button:hover { background-color: var(--primary-darker); }
+
+/* --- Footer --- */
+footer {
+    background-color: var(--header-dark-bg); color: var(--text-light);
+    text-align: center; padding: 25px 0; margin-top: 30px;
+}
+footer p { margin: 0; opacity: 0.8; font-size: 14px; }
+
+
+/* === RESPONSIVE CHO LANDING PAGE === */
+
+/* Điểm breakpoint khi menu mobile bắt đầu hiển thị (ví dụ: 992px) */
+@media (max-width: 991.98px) { 
+    .desktop-nav {
+        display: none; /* Ẩn menu desktop */
+    }
+    .mobile-menu-toggle {
+        display: block; /* Hiện nút 3 chấm/hamburger */
+    }
+    .landing-header .logo {
+        flex-grow: 1; /* Cho logo chiếm không gian còn lại bên trái nút toggle */
+        text-align: left; 
+    }
+    .landing-header .container {
+        /* Đảm bảo nút toggle và logo được căn chỉnh */
+    }
+
+    /* Điều chỉnh lại các section cho màn hình nhỏ hơn */
+    #hero { padding: 80px 0; }
+    #hero h1 { font-size: 36px; }
+    #hero .sub-headline { font-size: 17px; }
+
+    .section { padding: 50px 0; }
+    h2 { font-size: 28px; } /* Tiêu đề các section */
+
+    .features-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+    .feature-item { padding: 20px; }
+    .feature-item .fas { font-size: 32px; margin-bottom: 15px; }
+    .feature-item h3 { font-size: 17px; }
+    .feature-item p { font-size: 14px; }
+
+    .intro-row { flex-direction: column; text-align: center; }
+    .intro-text ul { text-align: left; padding-left: 15px; font-size: 15px; }
+    .intro-visual { margin-top: 25px; }
+    #gioi-thieu h2, #lien-he h2 { font-size: 28px; }
+}
+
+@media (max-width: 575.98px) {
+    .container { padding-left: 10px; padding-right: 10px; }
+    .landing-header .logo a { font-size: 20px; }
+    .mobile-menu-toggle { font-size: 20px; }
+
+    #hero { padding: 60px 0; }
+    #hero h1 { font-size: 28px; }
+    #hero .sub-headline { font-size: 15px; }
+    
+    .section { padding: 40px 0; }
+    h2 { font-size: 22px; }
+    #gioi-thieu h2, #lien-he h2 { font-size: 22px; }
+
+    .features-grid { grid-template-columns: 1fr; } /* Mỗi feature một hàng */
+
+    .contact-form input, .contact-form textarea, .contact-form button {
+        font-size: 14px; padding: 10px;
+    }
+    .button.primary { padding: 8px 20px; font-size: 14px; }
+}

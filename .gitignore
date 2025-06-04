@@ -1,0 +1,17 @@
+# D:/my_flask_app/.gitignore
+.venv/
+__pycache__/
+*.pyc
+*.db
+*.sqlite3
+instance/
+.idea/
+# Dòng sau để bỏ qua toàn bộ thư mục dự án Capacitor nếu nó nằm bên trong
+my-qr-mobile-app/node_modules/
+my-qr-mobile-app/android/app/build/
+my-qr-mobile-app/android/build/
+my-qr-mobile-app/android/.gradle/
+my-qr-mobile-app/android/gradle/
+my-qr-mobile-app/android/app/src/main/assets/capacitor.config.json
+my-qr-mobile-app/android/app/src/main/assets/public/
+my-qr-mobile-app/android/local.properties

@@ -1,0 +1,9 @@
+{
+  "appId": "com.jaykiee.quanlyqr",
+  "appName": "Quan Ly QR",
+  "webDir": "www",
+  "server": {
+    "url": "https://TEN-APP-CUA-BAN.onrender.com",
+    "cleartext": false 
+  }
+}

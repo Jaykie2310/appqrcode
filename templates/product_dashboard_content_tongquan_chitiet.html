@@ -1,0 +1,44 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Tổng quan Hệ Thống{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="overview-grid">
+    <div class="overview-card card-tongquan">
+        <div class="card-icon"><i class="fas fa-tachometer-alt"></i></div>
+        <h5 class="card-title">Tổng Quan Chung</h5>
+        <p class="card-text">Xem tóm tắt hoạt động và các thông báo quan trọng của hệ thống.</p>
+        <div class="card-actions">
+            <a href="{{ url_for('product_dashboard_overview_detail') }}" class="btn-action"><i class="fas fa-eye"></i> Xem chi tiết</a>
+        </div>
+    </div>
+
+    <div class="overview-card card-qlsp">
+        <div class="card-icon"><i class="fas fa-exchange-alt"></i></div>
+        <h5 class="card-title">Nhập / Xuất Kho</h5>
+        <p class="card-text">Sử dụng camera hoặc máy quét để cập nhật số lượng tồn kho.</p>
+        <div class="card-actions">
+            <a href="{{ url_for('pd_nhap_kho_quet_page') }}" class="btn-action"><i class="fas fa-arrow-circle-down"></i> Nhập kho bằng mã</a>
+            <a href="{{ url_for('pd_xuat_kho_quet_page') }}" class="btn-action"><i class="fas fa-arrow-circle-up"></i> Xuất kho bằng mã</a>
+        </div>
+    </div>
+
+    <div class="overview-card card-tonkho">
+        <div class="card-icon"><i class="fas fa-boxes-stacked"></i></div>
+        <h5 class="card-title">Quản Lý Tồn Kho</h5>
+        <p class="card-text">Theo dõi số lượng sản phẩm và quản lý danh mục hàng hóa.</p>
+        <div class="card-actions">
+            <a href="{{ url_for('pd_ton_kho_quan_ly') }}" class="btn-action"><i class="fas fa-dolly"></i> Xem Tồn Kho</a>
+        </div>
+    </div>
+
+    <div class="overview-card card-baocao">
+        <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
+        <h5 class="card-title">Báo Cáo & Thống Kê</h5>
+        <p class="card-text">Phân tích dữ liệu kinh doanh, doanh thu và hiệu suất.</p>
+        <div class="card-actions">
+            <a href="{{ url_for('pd_bao_cao_xem') }}" class="btn-action"><i class="fas fa-chart-bar"></i> Xem Báo Cáo</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

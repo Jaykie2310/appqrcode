@@ -1,0 +1,32 @@
+{% extends "product_dashboard_layout.html" %}
+{% block product_dashboard_content %}
+<div class="category-content-wrapper">
+    <h2 class="mb-4 category-page-main-title" style="color: white; text-shadow: 1px 1px 3px black; text-align:center;">
+        {{ category_display_name }}
+    </h2>
+
+    <div class="category-description-box">
+        <p>{{ category_description }}</p>
+    </div>
+
+    <div class="card mt-4" style="background-color: rgba(255,255,255,0.9);">
+        <div class="card-body">
+            <h5 class="card-title" style="color: var(--text-dark);">Danh sách sản phẩm (Ví dụ)</h5>
+            <p style="color: var(--text-muted);">Nội dung sản phẩm sẽ hiển thị ở đây...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mainContent = document.getElementById('dashboardMainContent');
+        const bgImageStyle = getComputedStyle(document.documentElement).getPropertyValue('--category-background-image').trim();
+
+        if (mainContent && bgImageStyle && bgImageStyle !== 'none' && bgImageStyle !== '') {
+            mainContent.classList.add('has-category-background');
+        } else {
+            mainContent.classList.remove('has-category-background');
+        }
+    });
+</script>
+{% endblock %}

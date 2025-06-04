@@ -1,0 +1,60 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Nhập Sản Phẩm Mới Vào Kho{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <h4><i class="fas fa-plus-circle"></i> Nhập Thông Tin Sản Phẩm Mới</h4>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('pd_nhap_san_pham_moi') }}">
+            {# ... các trường input của bạn ... #}
+            <div class="mb-3">
+                <label for="product_name" class="form-label">Tên sản phẩm (<span style="color:red;">*</span>):</label>
+                <input type="text" class="form-control" id="product_name" name="product_name"
+                       value="{{ form_data.get('product_name', '') }}" required>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="date_added" class="form-label">Ngày nhập sản phẩm (YYYY-MM-DD):</label>
+                    <input type="date" class="form-control" id="date_added" name="date_added"
+                           value="{{ form_data.get('date_added', today_date) }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="expiry_date" class="form-label">Ngày hết hạn (YYYY-MM-DD, nếu có):</label>
+                    <input type="date" class="form-control" id="expiry_date" name="expiry_date"
+                           value="{{ form_data.get('expiry_date', '') }}">
+                </div>
+            </div>
+            <div class="row">
+        <div class="col-md-4 mb-3">
+            <label for="price" class="form-label">Giá sản phẩm (VNĐ):</label>
+            <input type="number" class="form-control" id="price" name="price" step="1000" min="0" value="{{ form_data.get('price', '0') }}">
+        </div>
+        <div class="col-md-4 mb-3">
+            <label for="qty" class="form-label">Số lượng nhập kho ban đầu:</label>
+            <input type="number" class="form-control" id="qty" name="qty" min="0" value="{{ form_data.get('qty', '0') }}">
+        </div>
+        <div class="col-md-4 mb-3">
+            <label for="category" class="form-label">Danh mục (ví dụ: dien-tu):</label>
+            <input type="text" class="form-control" id="category" name="category" value="{{ form_data.get('category', '') }}">
+        </div>
+    </div>
+    <hr>
+    <button type="submit" class="btn btn-primary"><i class="fas fa-qrcode"></i> Tạo QR Code và Lưu Sản Phẩm</button>
+    <a href="{{ url_for('product_dashboard_overview') }}" class="btn btn-secondary">Quay lại Tổng quan</a>
+</form>
+
+{% if generated_qr_path and generated_product_id_internal %}
+<div class="mt-4 text-center">
+    <h5>Đã tạo mã QR cho sản phẩm: {{ product_name_processed if product_name_processed else '' }} (ID Nội Bộ: {{ generated_product_id_internal }})</h5>
+    <img src="{{ url_for('static', filename=generated_qr_path) }}"
+         alt="Mã QR cho sản phẩm {{ generated_product_id_internal }}"
+         style="max-width: 200px; border: 1px solid #ccc; padding: 5px; margin-top:10px;">
+    <p class="mt-2"><small><em>Quét mã này để xem thông tin sản phẩm (ID nội bộ và tên).</em></small></p>
+</div>
+{% endif %}
+    </div>
+</div>
+{% endblock %}

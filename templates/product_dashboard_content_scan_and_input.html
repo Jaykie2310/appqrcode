@@ -1,0 +1,144 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Nhập Kho Bằng Quét Mã{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <h4><i class="fas fa-barcode-read"></i> Nhập Sản Phẩm Vào Kho Bằng Quét Mã</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Bước 1: Quét Mã Vạch/QR Sản Phẩm</h5>
+                <div id="qr-reader" style="width: 100%; max-width:400px; border:1px solid #ccc; margin:0 auto;"></div>
+                <div class="mt-2 text-center">
+                    <button id="start-scan-btn-product" class="btn btn-sm btn-success"><i class="fas fa-play"></i> Bắt đầu Quét</button>
+                    <button id="stop-scan-btn-product" class="btn btn-sm btn-danger" style="display:none;"><i class="fas fa-stop"></i> Dừng Quét</button>
+                </div>
+                <div id="scanned-barcode-result" class="mt-2" style="font-weight:bold;"></div>
+            </div>
+
+            <div class="col-md-6">
+                <h5>Bước 2: Xác Nhận Thông Tin & Nhập Số Lượng</h5>
+                <form id="product-info-form">
+                    <input type="hidden" id="scanned_barcode_data_hidden" name="barcode_data">
+                    <input type="hidden" id="product_id_internal_hidden" name="product_id_internal">
+
+                    <div class="mb-3">
+                        <label for="product_name_scan" class="form-label">Tên sản phẩm (<span style="color:red;">*</span>):</label>
+                        <input type="text" class="form-control" id="product_name_scan" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="volume_weight_scan" class="form-label">Dung tích/Khối lượng:</label>
+                        <input type="text" class="form-control" id="volume_weight_scan" name="volume_weight">
+                    </div>
+                     <div class="mb-3">
+                        <label for="expiry_date_scan" class="form-label">Ngày hết hạn (YYYY-MM-DD):</label>
+                        <input type="date" class="form-control" id="expiry_date_scan" name="expiry_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantity_added_scan" class="form-label">Số lượng nhập vào kho (<span style="color:red;">*</span>):</label>
+                        <input type="number" class="form-control" id="quantity_added_scan" name="quantity" min="1" required>
+                    </div>
+                    <button type="submit" id="save-to-inventory-btn" class="btn btn-primary"><i class="fas fa-save"></i> Lưu vào Kho và Tạo QR Hệ Thống</button>
+                </form>
+            </div>
+        </div>
+
+        <hr class="my-4">
+        <h5>Kết quả xử lý:</h5>
+        <div id="final-processing-result" style="padding: 10px; border: 1px dashed #ccc; border-radius: 4px; min-height: 50px; background-color: #f9f9f9;">
+            Chưa có kết quả.
+        </div>
+
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.0.9/dist/html5-qrcode.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+    const scannedBarcodeResultDiv = document.getElementById('scanned-barcode-result');
+    const productInfoForm = document.getElementById('product-info-form');
+    const finalProcessingResultDiv = document.getElementById('final-processing-result');
+
+    // ... (các biến input của form giữ nguyên như cũ) ...
+    const hiddenBarcodeData = document.getElementById('scanned_barcode_data_hidden');
+    const hiddenInternalId = document.getElementById('product_id_internal_hidden');
+    const productNameInput = document.getElementById('product_name_scan');
+    const volumeWeightInput = document.getElementById('volume_weight_scan');
+    const expiryDateInput = document.getElementById('expiry_date_scan');
+    const quantityInput = document.getElementById('quantity_added_scan');
+
+    const startScanBtn = document.getElementById('start-scan-btn-product');
+    const stopScanBtn = document.getElementById('stop-scan-btn-product');
+
+    const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+        scannedBarcodeResultDiv.innerHTML = `<p style="color: green;">✅ Đã quét: <strong>${decodedText}</strong>. Đang tìm thông tin...</p>`;
+        stopScanningProduct();
+
+        fetch("{{ url_for('process_scanned_product_barcode') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ barcode_data: decodedText })
+        })
+        .then(response => response.json())
+        .then(data => {
+            scannedBarcodeResultDiv.innerHTML += `<p>Thông tin từ server: ${data.exists_in_db ? 'Sản phẩm đã có trong kho.' : 'Sản phẩm mới.'}</p>`;
+            productNameInput.value = data.name || '';
+            volumeWeightInput.value = data.volume_weight || '';
+            expiryDateInput.value = data.expiry_date || '';
+            hiddenBarcodeData.value = data.barcode_data || decodedText;
+            hiddenInternalId.value = data.product_id_internal || '';
+            quantityInput.focus();
+        })
+        .catch(error => {
+            console.error('Lỗi khi lấy thông tin sản phẩm:', error);
+            scannedBarcodeResultDiv.innerHTML += `<p style="color: red;">❌ Lỗi: ${error.error || 'Không thể lấy thông tin sản phẩm.'}</p>`;
+        });
+    };
+
+    // Cấu hình quét: bỏ qrbox và để thư viện tự xử lý
+    const config = { fps: 10, rememberedStates: true };
+
+    function startScanningProduct() {
+        scannedBarcodeResultDiv.innerHTML = "<p>Đang yêu cầu quyền truy cập camera...</p>";
+
+        // **PHẦN SỬA LỖI QUAN TRỌNG NHẤT LÀ ĐÂY**
+        // Chúng ta để hàm start tự xử lý việc chọn camera.
+        // facingMode: "user" là yêu cầu camera trước, phù hợp cho laptop.
+        html5QrCode.start(
+            { facingMode: "user" },
+            config,
+            qrCodeSuccessCallback
+        ).then(() => {
+            startScanBtn.style.display = 'none';
+            stopScanBtn.style.display = 'inline-block';
+            scannedBarcodeResultDiv.innerHTML = "<p>Di chuyển mã vạch/QR vào vùng camera...</p>";
+        }).catch(err => {
+            scannedBarcodeResultDiv.innerHTML = `<p style="color: red;">❌ Lỗi khởi động camera: ${err}</p>`;
+            console.error(err);
+        });
+    }
+
+    function stopScanningProduct() {
+        if (html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                startScanBtn.style.display = 'inline-block';
+                stopScanBtn.style.display = 'none';
+            }).catch(err => console.error("Lỗi khi dừng quét.", err));
+        }
+    }
+
+    startScanBtn.addEventListener('click', startScanningProduct);
+    stopScanBtn.addEventListener('click', stopScanningProduct);
+
+    // Phần xử lý submit form giữ nguyên
+    productInfoForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        // ... (code xử lý fetch để lưu sản phẩm giữ nguyên như cũ) ...
+    });
+});
+</script>
+{% endblock %}

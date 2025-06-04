@@ -1,0 +1,43 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Gắn Mã QR Cho Đơn Hàng{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <h4><i class="fas fa-qrcode"></i> Gán Mã QR Cho Đơn Hàng</h4>
+    </div>
+    <div class="card-body">
+        <p>Nhập ID của đơn hàng bạn muốn tạo mã QR.</p>
+        
+        <form method="POST" action="{{ url_for('pd_don_hang_gan_qr') }}" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="order_id_for_qr" class="form-label">ID Đơn hàng:</label>
+                <input type="number" class="form-control" name="order_id_for_qr" id="order_id_for_qr" placeholder="Ví dụ: 123" required>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" name="action" value="generate_qr" class="btn btn-info"><i class="fas fa-cogs"></i> Tạo Mã QR</button>
+            </div>
+        </form>
+
+        {% if message %}
+            <div class="alert alert-warning mt-3" role="alert">
+                {{ message }}
+            </div>
+        {% endif %}
+
+        {% if qr_image_path and order_id_processed %}
+        <div class="mt-4 text-center">
+            <h5>Mã QR cho Đơn hàng ID: {{ order_id_processed }}</h5>
+            <img src="{{ url_for('static', filename=qr_image_path) }}" alt="Mã QR cho đơn hàng {{ order_id_processed }}" style="max-width: 250px; border: 1px solid #ccc; padding: 5px; margin-top:10px;">
+            <p class="mt-2"><small><em>Lưu ý: Mã QR này hiện chứa thông tin cơ bản của đơn hàng.</em></small></p>
+            {# Thêm nút In nếu cần #}
+            {# <button onclick="window.print()" class="btn btn-secondary mt-2"><i class="fas fa-print"></i> In Mã QR</button> #}
+        </div>
+        {% endif %}
+        
+        {# Hiển thị danh sách các đơn hàng gần đây để dễ chọn (tùy chọn) #}
+        {# <h5 class="mt-5">Hoặc chọn từ danh sách đơn hàng gần đây:</h5> ... #}
+    </div>
+</div>
+{% endblock %}
