@@ -640,27 +640,45 @@
                 const config = {
                     fps: 10,
                     qrbox: {
-                        width: Math.floor(document.getElementById('reader').offsetWidth * 0.5),
-                        height: Math.floor(document.getElementById('reader').offsetHeight * 0.5)
+                        width: Math.floor(document.getElementById('reader').offsetWidth * 0.6),
+                        height: Math.floor(document.getElementById('reader').offsetHeight * 0.4)
                     },
                     aspectRatio: 4/3,
-                    rememberLastUsedCamera: true
+                    rememberLastUsedCamera: true,
+                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.QR_CODE,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E
+                    ]
                 };
 
-                html5QrcodeScanner.start(
-                    { facingMode: { exact: "environment" } }, // Ưu tiên camera sau
-                    config,
-                    onScanSuccess,
-                    onScanError
-                ).then(() => {
-                    isScanning = true;
-                    startButton.disabled = true;
-                    stopButton.disabled = false;
-                }).catch((err) => {
-                    console.error(`Không thể khởi động camera: ${err}`);
-                    showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera và thử lại.');
-                     html5QrcodeScanner.start( // Thử lại với bất kỳ camera nào nếu camera sau lỗi
-                        undefined, // Bỏ qua facingMode để thử camera trước
+                // Thử các tùy chọn camera theo thứ tự ưu tiên
+                const cameraOptions = [
+                    { facingMode: { exact: "environment" } }, // Camera sau (ưu tiên)
+                    { facingMode: "environment" }, // Camera sau (không bắt buộc exact)
+                    { facingMode: { exact: "user" } }, // Camera trước
+                    { facingMode: "user" }, // Camera trước (không bắt buộc exact)
+                    undefined // Bất kỳ camera nào
+                ];
+
+                let currentOptionIndex = 0;
+
+                function tryStartCamera() {
+                    if (currentOptionIndex >= cameraOptions.length) {
+                        showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera và thử lại.');
+                        return;
+                    }
+
+                    const currentOption = cameraOptions[currentOptionIndex];
+                    console.log(`Thử khởi động camera với option ${currentOptionIndex}:`, currentOption);
+
+                    html5QrcodeScanner.start(
+                        currentOption,
                         config,
                         onScanSuccess,
                         onScanError
@@ -668,11 +686,23 @@
                         isScanning = true;
                         startButton.disabled = true;
                         stopButton.disabled = false;
-                    }).catch((errFallback) => {
-                         console.error(`Không thể khởi động camera (fallback): ${errFallback}`);
-                         showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập.');
+                        console.log(`Camera khởi động thành công với option ${currentOptionIndex}`);
+                        
+                        // Hiển thị thông báo về camera đang sử dụng
+                        if (currentOptionIndex > 0) {
+                            showError(`Đã chuyển sang camera ${currentOptionIndex === 1 || currentOptionIndex === 2 ? 'trước' : 'khả dụng'}. Quét mã vạch bình thường.`);
+                            setTimeout(() => {
+                                error.style.display = 'none';
+                            }, 3000);
+                        }
+                    }).catch((err) => {
+                        console.error(`Camera option ${currentOptionIndex} failed:`, err);
+                        currentOptionIndex++;
+                        setTimeout(tryStartCamera, 500); // Thử option tiếp theo sau 500ms
                     });
-                });
+                }
+
+                tryStartCamera();
             }
 
             function stopScanning() {
@@ -770,22 +800,78 @@
                     return;
                 }
 
+                const file = fileInput.files[0];
+                
+                // Kiểm tra kích thước file (tối đa 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    showError('File ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 10MB.');
+                    return;
+                }
+
+                // Kiểm tra định dạng file
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'image/webp'];
+                if (!allowedTypes.includes(file.type)) {
+                    showError('Định dạng file không được hỗ trợ. Vui lòng chọn file JPG, PNG, BMP hoặc WebP.');
+                    return;
+                }
+
                 try {
                     showLoading();
-                    const response = await fetch('/api/process_barcode_image', { // API endpoint xử lý ảnh
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await response.json();
-                    if (data.success && data.product) {
-                         // *** THAY ĐỔI: Lưu mã vạch từ ảnh ***
-                        currentScannedBarcode = data.product.barcode; // Giả sử API trả về barcode trong product
-                        showResult(data.product);
-                    } else {
-                        showError(data.message || 'Không thể đọc mã vạch từ ảnh.');
-                        document.getElementById('scanDate').value = new Date().toISOString().slice(0, 10);
-                        scanResult.style.display = 'block'; // Hiển thị form để nhập
+                    
+                    // Thử xử lý ảnh với nhiều cách khác nhau
+                    let success = false;
+                    let lastError = '';
+                    
+                    // Cách 1: Gửi ảnh gốc
+                    try {
+                        const response = await fetch('/api/process_barcode_image', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+                        
+                        if (data.success && data.product) {
+                            currentScannedBarcode = data.product.barcode;
+                            showResult(data.product);
+                            success = true;
+                        } else {
+                            lastError = data.message || 'Không thể đọc mã vạch từ ảnh gốc.';
+                        }
+                    } catch (err) {
+                        lastError = 'Lỗi khi xử lý ảnh gốc: ' + err.message;
                     }
+                    
+                    // Cách 2: Nếu thất bại, thử resize ảnh
+                    if (!success) {
+                        try {
+                            const resizedFile = await resizeImage(file, 1200, 1200);
+                            const resizedFormData = new FormData();
+                            resizedFormData.append('file', resizedFile);
+                            
+                            const response = await fetch('/api/process_barcode_image', {
+                                method: 'POST',
+                                body: resizedFormData
+                            });
+                            const data = await response.json();
+                            
+                            if (data.success && data.product) {
+                                currentScannedBarcode = data.product.barcode;
+                                showResult(data.product);
+                                success = true;
+                            } else {
+                                lastError = data.message || 'Không thể đọc mã vạch từ ảnh đã resize.';
+                            }
+                        } catch (err) {
+                            lastError = 'Lỗi khi xử lý ảnh resize: ' + err.message;
+                        }
+                    }
+                    
+                    if (!success) {
+                        showError(lastError + ' Bạn có thể thử chụp ảnh khác hoặc nhập thông tin thủ công.');
+                        document.getElementById('scanDate').value = new Date().toISOString().slice(0, 10);
+                        scanResult.style.display = 'block';
+                    }
+                    
                 } catch (err) {
                     showError('Lỗi khi xử lý ảnh: ' + err.message);
                     document.getElementById('scanDate').value = new Date().toISOString().slice(0, 10);
@@ -794,6 +880,43 @@
                     hideLoading();
                 }
             });
+
+            // Hàm resize ảnh
+            function resizeImage(file, maxWidth, maxHeight) {
+                return new Promise((resolve) => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    img.onload = function() {
+                        // Tính toán kích thước mới
+                        let { width, height } = img;
+                        
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height = (height * maxWidth) / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width = (width * maxHeight) / height;
+                                height = maxHeight;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        // Vẽ ảnh đã resize
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Chuyển đổi về blob
+                        canvas.toBlob(resolve, 'image/jpeg', 0.9);
+                    };
+                    
+                    img.src = URL.createObjectURL(file);
+                });
+            }
 
             stockInButton.addEventListener('click', async function() {
                 const quantity = document.getElementById('quantity').value;

@@ -14,18 +14,146 @@ from PIL import Image
 import io
 
 
-def decode(image):
+def preprocess_image_for_barcode(image):
+    """Tiền xử lý ảnh để cải thiện khả năng đọc mã vạch"""
+    try:
+        import cv2
+        import numpy as np
+        
+        # Chuyển PIL Image sang OpenCV format
+        opencv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        
+        # Chuyển sang grayscale
+        gray = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2GRAY)
+        
+        # Áp dụng Gaussian blur để giảm noise
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        
+        # Tăng độ tương phản
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        enhanced = clahe.apply(blurred)
+        
+        # Thử nhiều threshold khác nhau
+        processed_images = []
+        
+        # Binary threshold
+        _, binary = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        processed_images.append(Image.fromarray(binary))
+        
+        # Adaptive threshold
+        adaptive = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+        processed_images.append(Image.fromarray(adaptive))
+        
+        # Original enhanced
+        processed_images.append(Image.fromarray(enhanced))
+        
+        return processed_images
+    except ImportError:
+        # Fallback nếu không có OpenCV
+        if image.mode != 'L':
+            gray = image.convert('L')
+        else:
+            gray = image
+        return [gray]
+    except Exception as e:
+        app.logger.error(f"Lỗi khi tiền xử lý ảnh: {str(e)}")
+        return [image.convert('L') if image.mode != 'L' else image]
+
+
+def decode_with_multiple_methods(image):
+    """Thử nhiều phương pháp decode khác nhau"""
+    results = []
+    
+    # Phương pháp 1: pyzbar
     try:
         from pyzbar.pyzbar import decode as pyzbar_decode
-        if image.mode != 'L':
-            image = image.convert('L')
-        # print(f"Decoding image. Mode: {image.mode}, Size: {image.size}")
         decoded_objects = pyzbar_decode(image)
         if decoded_objects:
-            return decoded_objects
-        return []
+            for obj in decoded_objects:
+                results.append({
+                    'data': obj.data.decode('utf-8'),
+                    'type': obj.type,
+                    'method': 'pyzbar'
+                })
     except Exception as e:
-        # print(f"Lỗi khi decode mã vạch: {str(e)}")
+        app.logger.warning(f"pyzbar decode failed: {str(e)}")
+    
+    # Phương pháp 2: zxing (nếu có)
+    try:
+        import zxing
+        reader = zxing.BarCodeReader()
+        # Lưu ảnh tạm thời
+        temp_path = '/tmp/temp_barcode.png'
+        image.save(temp_path)
+        barcode = reader.decode(temp_path)
+        if barcode:
+            results.append({
+                'data': barcode.parsed,
+                'type': barcode.format,
+                'method': 'zxing'
+            })
+        # Xóa file tạm
+        import os
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+    except Exception as e:
+        app.logger.warning(f"zxing decode failed: {str(e)}")
+    
+    # Phương pháp 3: opencv barcode detector (nếu có)
+    try:
+        import cv2
+        import numpy as np
+        
+        # Chuyển đổi sang OpenCV format
+        opencv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        gray = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2GRAY)
+        
+        # Sử dụng OpenCV barcode detector
+        detector = cv2.barcode.BarcodeDetector()
+        retval, decoded_info, decoded_type, points = detector.detectAndDecode(gray)
+        
+        if retval:
+            for i, info in enumerate(decoded_info):
+                if info:
+                    results.append({
+                        'data': info,
+                        'type': decoded_type[i] if i < len(decoded_type) else 'unknown',
+                        'method': 'opencv'
+                    })
+    except Exception as e:
+        app.logger.warning(f"opencv decode failed: {str(e)}")
+    
+    return results
+
+
+def decode(image):
+    """Hàm decode chính với nhiều phương pháp dự phòng"""
+    try:
+        # Tiền xử lý ảnh
+        processed_images = preprocess_image_for_barcode(image)
+        
+        all_results = []
+        
+        # Thử decode với từng ảnh đã xử lý
+        for processed_img in processed_images:
+            results = decode_with_multiple_methods(processed_img)
+            all_results.extend(results)
+        
+        # Nếu có kết quả, trả về kết quả đầu tiên
+        if all_results:
+            app.logger.info(f"Barcode detected using {all_results[0]['method']}: {all_results[0]['data']}")
+            # Chuyển đổi về format tương thích với code cũ
+            class BarcodeResult:
+                def __init__(self, data, type_name):
+                    self.data = data.encode('utf-8')
+                    self.type = type_name
+            
+            return [BarcodeResult(all_results[0]['data'], all_results[0]['type'])]
+        
+        return []
+        
+    except Exception as e:
+        app.logger.error(f"Lỗi khi decode mã vạch: {str(e)}")
         return []
 
 
