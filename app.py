@@ -224,11 +224,88 @@ def process_barcode_image():
                 }
                 return jsonify({'success': True, 'product': product_info})
             else:
-                return jsonify({'success': False, 'message': 'Không tìm thấy sản phẩm trên Open Food Facts'})
+                # Fallback: tạo sản phẩm với thông tin cơ bản từ barcode
+                app.logger.warning(f"Sản phẩm không tìm thấy trên OpenFoodFacts, tạo fallback cho barcode: {barcode}")
+                fallback_product = {
+                    'name': f'Sản phẩm {barcode}',
+                    'manufacturer': 'Chưa xác định',
+                    'origin': 'Chưa xác định',
+                    'volume': 'Chưa xác định',
+                    'image_url': None,
+                    'barcode': barcode,
+                    'ingredients': 'Chưa có thông tin',
+                    'nutrition_data': {
+                        'energy': 'N/A',
+                        'proteins': 'N/A',
+                        'carbohydrates': 'N/A',
+                        'fat': 'N/A'
+                    },
+                    'categories': [],
+                    'packaging': 'Chưa xác định',
+                    'serving_size': 'Chưa xác định',
+                    'stores': 'Chưa xác định',
+                    'scan_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+                return jsonify({'success': True, 'product': fallback_product, 'fallback': True})
 
+        except requests.exceptions.ConnectionError as e:
+            app.logger.error(f"API: OpenFoodFacts - Connection error: {e}")
+            # Fallback khi không thể kết nối
+            fallback_product = {
+                'name': f'Sản phẩm {barcode}',
+                'manufacturer': 'Chưa xác định',
+                'origin': 'Chưa xác định', 
+                'volume': 'Chưa xác định',
+                'image_url': None,
+                'barcode': barcode,
+                'ingredients': 'Chưa có thông tin',
+                'nutrition_data': {
+                    'energy': 'N/A',
+                    'proteins': 'N/A',
+                    'carbohydrates': 'N/A',
+                    'fat': 'N/A'
+                },
+                'categories': [],
+                'packaging': 'Chưa xác định',
+                'serving_size': 'Chưa xác định',
+                'stores': 'Chưa xác định',
+                'scan_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            return jsonify({
+                'success': True, 
+                'product': fallback_product, 
+                'fallback': True,
+                'message': 'Không thể kết nối đến cơ sở dữ liệu sản phẩm. Vui lòng nhập thông tin thủ công.'
+            })
         except requests.exceptions.RequestException as e:
             app.logger.error(f"API: OpenFoodFacts - Request error: {e}")
-            return jsonify({'success': False, 'message': f'Lỗi khi gọi API Open Food Facts: {e}'}), 500
+            # Fallback cho các lỗi khác
+            fallback_product = {
+                'name': f'Sản phẩm {barcode}',
+                'manufacturer': 'Chưa xác định',
+                'origin': 'Chưa xác định',
+                'volume': 'Chưa xác định',
+                'image_url': None,
+                'barcode': barcode,
+                'ingredients': 'Chưa có thông tin',
+                'nutrition_data': {
+                    'energy': 'N/A',
+                    'proteins': 'N/A',
+                    'carbohydrates': 'N/A',
+                    'fat': 'N/A'
+                },
+                'categories': [],
+                'packaging': 'Chưa xác định',
+                'serving_size': 'Chưa xác định',
+                'stores': 'Chưa xác định',
+                'scan_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            return jsonify({
+                'success': True, 
+                'product': fallback_product, 
+                'fallback': True,
+                'message': 'Lỗi kết nối cơ sở dữ liệu sản phẩm. Vui lòng nhập thông tin thủ công.'
+            })
 
     except Exception as e:
         app.logger.error(f"Error processing barcode image: {e}")
@@ -416,73 +493,178 @@ def scan_product_openfoodfacts():
                 'stores': product_data.get('stores', 'Không có thông tin'),
                 'scan_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
-            try:
-                conn = get_db_connection()
-                c = conn.cursor()
-                c.execute("""
-                    INSERT INTO products (
-                        name, barcode_data, product_id_internal, manufacturer, origin,
-                        volume_weight, date_added, product_qr_code_path
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(barcode_data) DO UPDATE SET
-                    name=excluded.name,
-                    manufacturer=excluded.manufacturer,
-                    origin=excluded.origin,
-                    volume_weight=excluded.volume_weight,
-                    date_added=excluded.date_added
-                """, (
-                    product_info['name'],
-                    barcode,
-                    generate_internal_product_id(),
-                    product_info['manufacturer'],
-                    product_info['origin'],
-                    product_info['volume'],
-                    product_info['scan_date'],
-                    None
-                ))
-                product_id = c.lastrowid
-                qr_data = {
-                    'product_id': product_id,
-                    'name': product_info['name'],
-                    'barcode': barcode,
-                    'manufacturer': product_info['manufacturer'],
-                    'origin': product_info['origin'],
-                    'volume': product_info['volume']
-                }
-                qr_folder_path = os.path.join(os.path.dirname(__file__), 'static', 'product_qrcodes')
-                if not os.path.exists(qr_folder_path):
-                    os.makedirs(qr_folder_path)
-                qr_filename = f"product_{product_id}.png"
-                qr_file_path = os.path.join(qr_folder_path, qr_filename)
-                qr = qrcode.QRCode(version=1, box_size=10, border=5)
-                qr.add_data(json.dumps(qr_data))
-                qr.make(fit=True)
-                qr_img = qr.make_image(fill_color="black", back_color="white")
-                qr_img.save(qr_file_path)
-                qr_path_for_db = os.path.join('product_qrcodes', qr_filename).replace("\\", "/")
-                c.execute("UPDATE products SET product_qr_code_path = ? WHERE id = ?", (qr_path_for_db, product_id))
-                conn.commit()
-                product_info['qr_code_path'] = qr_path_for_db
-            except Exception as db_error:
-                app.logger.error(f"Database error: {db_error}")
-                if 'conn' in locals():
-                    conn.rollback()
-                    conn.close()
-                return jsonify({'success': False, 'message': f'Lỗi khi lưu vào CSDL: {str(db_error)}'}), 500
-            finally:
-                if 'conn' in locals():
-                    conn.close()
-            app.logger.info(f"API: OpenFoodFacts - Product found and saved: {product_info.get('name')}")
-            return jsonify({'success': True, 'product': product_info})
         else:
-            app.logger.warning(f"API: OpenFoodFacts - Product not found or status not 1 for barcode: {barcode}")
-            return jsonify({'success': False, 'message': 'Không tìm thấy sản phẩm trên Open Food Facts'})
+            # Fallback: tạo sản phẩm với thông tin cơ bản từ barcode
+            app.logger.warning(f"Sản phẩm không tìm thấy trên OpenFoodFacts, tạo fallback cho barcode: {barcode}")
+            product_info = {
+                'name': f'Sản phẩm {barcode}',
+                'manufacturer': 'Chưa xác định',
+                'origin': 'Chưa xác định',
+                'volume': 'Chưa xác định',
+                'image_url': None,
+                'barcode': barcode,
+                'ingredients': 'Chưa có thông tin',
+                'nutrition_data': {
+                    'energy': 'N/A',
+                    'proteins': 'N/A',
+                    'carbohydrates': 'N/A',
+                    'fat': 'N/A'
+                },
+                'categories': [],
+                'packaging': 'Chưa xác định',
+                'serving_size': 'Chưa xác định',
+                'stores': 'Chưa xác định',
+                'scan_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+
+        # Lưu vào database (cho cả trường hợp tìm thấy và fallback)
+        try:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO products (
+                    name, barcode_data, product_id_internal, manufacturer, origin,
+                    volume_weight, date_added, product_qr_code_path
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(barcode_data) DO UPDATE SET
+                name=excluded.name,
+                manufacturer=excluded.manufacturer,
+                origin=excluded.origin,
+                volume_weight=excluded.volume_weight,
+                date_added=excluded.date_added
+            """, (
+                product_info['name'],
+                barcode,
+                generate_internal_product_id(),
+                product_info['manufacturer'],
+                product_info['origin'],
+                product_info['volume'],
+                product_info['scan_date'],
+                None
+            ))
+            product_id = c.lastrowid
+            qr_data = {
+                'product_id': product_id,
+                'name': product_info['name'],
+                'barcode': barcode,
+                'manufacturer': product_info['manufacturer'],
+                'origin': product_info['origin'],
+                'volume': product_info['volume']
+            }
+            qr_folder_path = os.path.join(os.path.dirname(__file__), 'static', 'product_qrcodes')
+            if not os.path.exists(qr_folder_path):
+                os.makedirs(qr_folder_path)
+            qr_filename = f"product_{product_id}.png"
+            qr_file_path = os.path.join(qr_folder_path, qr_filename)
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(json.dumps(qr_data))
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            qr_img.save(qr_file_path)
+            qr_path_for_db = os.path.join('product_qrcodes', qr_filename).replace("\\", "/")
+            c.execute("UPDATE products SET product_qr_code_path = ? WHERE id = ?", (qr_path_for_db, product_id))
+            conn.commit()
+            product_info['qr_code_path'] = qr_path_for_db
+        except Exception as db_error:
+            app.logger.error(f"Database error: {db_error}")
+            if 'conn' in locals():
+                conn.rollback()
+                conn.close()
+            return jsonify({'success': False, 'message': f'Lỗi khi lưu vào CSDL: {str(db_error)}'}), 500
+        finally:
+            if 'conn' in locals():
+                conn.close()
+        
+        app.logger.info(f"API: OpenFoodFacts - Product processed and saved: {product_info.get('name')}")
+        return jsonify({'success': True, 'product': product_info})
+        
+    except requests.exceptions.ConnectionError as e:
+        app.logger.error(f"API: OpenFoodFacts - Connection error: {e}")
+        # Fallback khi không thể kết nối - vẫn cho phép tạo sản phẩm
+        fallback_product = {
+            'name': f'Sản phẩm {barcode}',
+            'manufacturer': 'Chưa xác định',
+            'origin': 'Chưa xác định',
+            'volume': 'Chưa xác định',
+            'image_url': None,
+            'barcode': barcode,
+            'ingredients': 'Chưa có thông tin',
+            'nutrition_data': {
+                'energy': 'N/A',
+                'proteins': 'N/A',
+                'carbohydrates': 'N/A',
+                'fat': 'N/A'
+            },
+            'categories': [],
+            'packaging': 'Chưa xác định',
+            'serving_size': 'Chưa xác định',
+            'stores': 'Chưa xác định',
+            'scan_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return jsonify({
+            'success': True, 
+            'product': fallback_product, 
+            'fallback': True,
+            'message': 'Không thể kết nối đến cơ sở dữ liệu sản phẩm. Vui lòng nhập thông tin thủ công.'
+        })
     except requests.exceptions.RequestException as e:
         app.logger.error(f"API: OpenFoodFacts - Request error: {e}")
-        return jsonify({'success': False, 'message': f'Lỗi khi gọi API Open Food Facts: {e}'}), 500
+        # Fallback cho các lỗi khác
+        fallback_product = {
+            'name': f'Sản phẩm {barcode}',
+            'manufacturer': 'Chưa xác định',
+            'origin': 'Chưa xác định',
+            'volume': 'Chưa xác định',
+            'image_url': None,
+            'barcode': barcode,
+            'ingredients': 'Chưa có thông tin',
+            'nutrition_data': {
+                'energy': 'N/A',
+                'proteins': 'N/A',
+                'carbohydrates': 'N/A',
+                'fat': 'N/A'
+            },
+            'categories': [],
+            'packaging': 'Chưa xác định',
+            'serving_size': 'Chưa xác định',
+            'stores': 'Chưa xác định',
+            'scan_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return jsonify({
+            'success': True, 
+            'product': fallback_product, 
+            'fallback': True,
+            'message': 'Lỗi kết nối cơ sở dữ liệu sản phẩm. Vui lòng nhập thông tin thủ công.'
+        })
     except Exception as e:
         app.logger.error(f"API: OpenFoodFacts - Unexpected error: {e}")
-        return jsonify({'success': False, 'message': f'Lỗi không xác định: {e}'}), 500
+        # Fallback cho lỗi không xác định
+        fallback_product = {
+            'name': f'Sản phẩm {barcode}',
+            'manufacturer': 'Chưa xác định',
+            'origin': 'Chưa xác định',
+            'volume': 'Chưa xác định',
+            'image_url': None,
+            'barcode': barcode,
+            'ingredients': 'Chưa có thông tin',
+            'nutrition_data': {
+                'energy': 'N/A',
+                'proteins': 'N/A',
+                'carbohydrates': 'N/A',
+                'fat': 'N/A'
+            },
+            'categories': [],
+            'packaging': 'Chưa xác định',
+            'serving_size': 'Chưa xác định',
+            'stores': 'Chưa xác định',
+            'scan_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return jsonify({
+            'success': True, 
+            'product': fallback_product, 
+            'fallback': True,
+            'message': 'Lỗi không xác định. Vui lòng nhập thông tin thủ công.'
+        })
 
 
 @app.after_request

@@ -763,7 +763,10 @@
                 })
                 .then(data => {
                     if (data.success && data.product) {
-                        showResult(data.product);
+                        showResult(data.product, data.fallback);
+                        if (data.fallback && data.message) {
+                            showWarning(data.message);
+                        }
                     } else {
                         // Nếu không tìm thấy trên Open Food Facts, vẫn cho phép nhập thủ công
                         showError(data.message || 'Không tìm thấy thông tin trên Open Food Facts. Bạn có thể nhập thủ công.');
@@ -830,13 +833,16 @@
                         });
                         const data = await response.json();
                         
-                        if (data.success && data.product) {
-                            currentScannedBarcode = data.product.barcode;
-                            showResult(data.product);
-                            success = true;
-                        } else {
-                            lastError = data.message || 'Không thể đọc mã vạch từ ảnh gốc.';
-                        }
+                            if (data.success && data.product) {
+                                currentScannedBarcode = data.product.barcode;
+                                showResult(data.product, data.fallback);
+                                if (data.fallback && data.message) {
+                                    showWarning(data.message);
+                                }
+                                success = true;
+                            } else {
+                                lastError = data.message || 'Không thể đọc mã vạch từ ảnh gốc.';
+                            }
                     } catch (err) {
                         lastError = 'Lỗi khi xử lý ảnh gốc: ' + err.message;
                     }
@@ -856,7 +862,10 @@
                             
                             if (data.success && data.product) {
                                 currentScannedBarcode = data.product.barcode;
-                                showResult(data.product);
+                                showResult(data.product, data.fallback);
+                                if (data.fallback && data.message) {
+                                    showWarning(data.message);
+                                }
                                 success = true;
                             } else {
                                 lastError = data.message || 'Không thể đọc mã vạch từ ảnh đã resize.';
@@ -996,7 +1005,7 @@
                 }
             });
 
-            function showResult(product) {
+            function showResult(product, isFallback = false) {
                 document.getElementById('productName').value = product.name || '';
                 document.getElementById('manufacturer').value = product.manufacturer || '';
                 document.getElementById('origin').value = product.origin || '';
@@ -1009,8 +1018,52 @@
                 }
                 document.getElementById('scanDate').value = product.scan_date || new Date().toISOString().slice(0, 10);
 
+                // Nếu là fallback, highlight các field cần chỉnh sửa
+                if (isFallback) {
+                    const fieldsToHighlight = ['productName', 'manufacturer', 'origin', 'volume'];
+                    fieldsToHighlight.forEach(fieldId => {
+                        const field = document.getElementById(fieldId);
+                        if (field) {
+                            field.style.borderColor = '#fbbf24';
+                            field.style.backgroundColor = '#fef3c7';
+                            field.placeholder = 'Vui lòng nhập thông tin chính xác';
+                        }
+                    });
+                }
+
                 scanResult.style.display = 'block';
                 error.style.display = 'none';
+            }
+
+            function showWarning(message) {
+                const warningDiv = document.createElement('div');
+                warningDiv.className = 'alert alert-warning';
+                warningDiv.style.cssText = `
+                    background-color: #fef3c7;
+                    border: 1px solid #f59e0b;
+                    color: #92400e;
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin: 10px 0;
+                    display: flex;
+                    align-items: center;
+                `;
+                warningDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+                    ${message}
+                `;
+                
+                const container = document.getElementById('scan-result');
+                if (container) {
+                    container.insertBefore(warningDiv, container.firstChild);
+                    
+                    // Tự động ẩn sau 10 giây
+                    setTimeout(() => {
+                        if (warningDiv.parentNode) {
+                            warningDiv.remove();
+                        }
+                    }, 10000);
+                }
             }
 
             function showError(message) {
