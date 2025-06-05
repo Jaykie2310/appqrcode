@@ -17,13 +17,310 @@
     <style>
         :root {
             --category-background-image: {% if category_bg_image %}url('{{ category_bg_image | e }}'){% else %}none{% endif %};
-            --sidebar-bg-color: #1a4d2e; /* Dark green from image */
+            /* Đồng bộ màu sắc với index.html - Tailwind config */
+            --sidebar-bg-color: #1a4d2e; /* primary color */
             --sidebar-text-color: #ffffff;
-            --sidebar-active-bg-color: #2d9596; /* Lighter green for active, from Tailwind secondary */
-            --sidebar-hover-bg-color: #257a7b; /* Slightly darker than active for hover */
+            --sidebar-active-bg-color: #2d9596; /* secondary color */
+            --sidebar-hover-bg-color: #257a7b; /* darker secondary for hover */
+            --accent-color: #9ad0c2; /* accent color */
+            --background-color: #f2f7f5; /* background color */
+            --surface-color: #ffffff; /* surface color */
+        }
+
+        /* Enhanced dashboard styling */
+        .dashboard-container {
+            background-color: var(--background-color);
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto 1fr;
+        }
+
+        .dashboard-sidebar {
+            grid-row: 1 / -1;
+            background-color: var(--sidebar-bg-color);
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+            overflow-y: auto;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        .dashboard-header {
+            grid-column: 2;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .dashboard-main {
+            background-color: var(--background-color);
+            grid-column: 2;
+            padding: 2rem;
+            min-height: calc(100vh - 4rem);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-header {
+                grid-column: 1;
+            }
+
+            .dashboard-main {
+                grid-column: 1;
+                padding: 1.5rem;
+                padding-bottom: 5rem;
+            }
+
+            .desktop-only-element {
+                display: none !important;
+            }
+        }
+
+        /* Collapsed sidebar state */
+        .sidebar-collapsed .dashboard-sidebar {
+            width: 5rem;
+        }
+
+        .sidebar-collapsed .sidebar-app-title span,
+        .sidebar-collapsed .sidebar-item span {
+            display: none;
+        }
+
+        .sidebar-collapsed .sidebar-item {
+            text-align: center;
+        }
+
+        .sidebar-collapsed .sidebar-item a {
+            justify-content: center;
+            padding: 0.75rem;
+        }
+
+        .sidebar-collapsed .sidebar-item i {
+            margin: 0;
+            width: auto;
+        }
+
+        /* Sidebar enhancements */
+        .sidebar-app-title {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.25rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sidebar-app-title .fas {
+            color: var(--accent-color);
+            font-size: 1.5rem;
+        }
+
+        .sidebar-app-title span {
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: var(--sidebar-text-color);
+        }
+
+        .dashboard-sidebar nav {
+            padding: 1rem 0;
+        }
+
+        .dashboard-sidebar .sidebar-item {
+            margin: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-sidebar .sidebar-item a {
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--sidebar-text-color);
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-sidebar .sidebar-item:hover {
+            background-color: var(--sidebar-hover-bg-color);
+        }
+
+        .dashboard-sidebar .sidebar-item.active {
+            background-color: var(--sidebar-active-bg-color);
+        }
+
+        .dashboard-sidebar .sidebar-item.active a {
+            opacity: 1;
+        }
+
+        .dashboard-sidebar .sidebar-item i {
+            font-size: 1.25rem;
+            width: 1.5rem;
+            text-align: center;
+        }
+
+        .dashboard-sidebar .sidebar-item-bottom {
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 0.75rem;
+        }
+
+        /* Header improvements */
+        .dashboard-header {
+            background-color: var(--surface-color);
+            border-bottom: 1px solid rgba(26, 77, 46, 0.1);
+            box-shadow: 0 1px 3px rgba(26, 77, 46, 0.05);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 4rem;
+        }
+
+        .dashboard-header .sidebar-toggle {
+            background: none;
+            border: none;
+            color: var(--sidebar-bg-color);
+            font-size: 1.25rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 0.375rem;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-header .sidebar-toggle:hover {
+            background-color: rgba(26, 77, 46, 0.05);
+        }
+
+        .header-title h1 {
+            color: var(--sidebar-bg-color);
+            font-weight: 600;
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-user i {
+            color: var(--sidebar-bg-color);
+            font-size: 1.25rem;
+        }
+
+        .header-user span {
+            color: var(--sidebar-bg-color);
+            font-weight: 500;
+        }
+
+        .header-user a {
+            color: var(--sidebar-bg-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: all 0.3s ease;
+        }
+
+        .header-user a:hover {
+            background-color: rgba(26, 77, 46, 0.05);
+        }
+
+        /* Flash messages styling */
+        .flash-messages-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 24rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: var(--surface-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert i {
+            font-size: 1.25rem;
+        }
+
+        .alert-success {
+            border-left: 4px solid #10B981;
+        }
+
+        .alert-danger {
+            border-left: 4px solid #EF4444;
+        }
+
+        .alert-warning {
+            border-left: 4px solid #F59E0B;
+        }
+
+        .alert-info {
+            border-left: 4px solid #3B82F6;
+        }
+
+        /* Mobile nav improvements */
+        .mobile-bottom-nav {
+            background-color: var(--surface-color);
+            border-top: 1px solid rgba(26, 77, 46, 0.1);
+            box-shadow: 0 -2px 10px rgba(26, 77, 46, 0.1);
+            padding: 0.5rem 0;
+        }
+
+        .mobile-bottom-nav .nav-item {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-bottom-nav .nav-item.active {
+            color: var(--sidebar-active-bg-color);
+        }
+
+        .mobile-bottom-nav .nav-item.nav-item-main .icon-wrapper {
+            background-color: var(--sidebar-active-bg-color);
+            box-shadow: 0 -2px 12px rgba(45, 149, 150, 0.3);
+            border-radius: 50%;
+            padding: 1rem;
+            transform: translateY(-40%);
+            transition: transform 0.3s ease;
+        }
+
+        .mobile-bottom-nav .nav-item.nav-item-main:active .icon-wrapper {
+            transform: translateY(-30%);
+        }
+
+        .mobile-bottom-nav .nav-text {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            color: var(--sidebar-bg-color);
+        }
+
+        .mobile-bottom-nav .nav-item.active .nav-text {
+            font-weight: 600;
         }
     </style>
-    <title>{% block page_specific_title %}QR Manager{% endblock %}</title> {# Changed default title #}
+    <title>{% block page_specific_title %}QR Manager - Dashboard{% endblock %}</title>
 </head>
 <body>
     <div class="dashboard-container">
@@ -32,14 +329,13 @@
                 <i class="fas fa-bars"></i>
             </button>
             <div class="header-title">
-                <!-- Removed icon and title from here, will be in sidebar or main content -->
                 <h1>
                     {% if category_display_name %}
                         {{ category_display_name }}
-                    {% elif page_specific_title and page_specific_title not in ["QR Manager", "Dashboard"] %}
+                    {% elif page_specific_title and page_specific_title not in ["QR Manager", "QR Manager - Dashboard"] %}
                          {% block header_page_title %}{{ self.page_specific_title() }}{% endblock %}
                     {% else %}
-                        Dashboard <!-- Default title for main area -->
+                        Dashboard
                     {% endif %}
                 </h1>
             </div>
@@ -56,47 +352,46 @@
 
         <aside class="dashboard-sidebar desktop-only-element" id="dashboardSidebar">
             <div class="sidebar-app-title">
-                <i class="fas fa-th-large"></i> <!-- Icon from image -->
+                <i class="fas fa-qrcode"></i>
                 <span>QR Manager</span>
             </div>
             <nav>
-                 <ul>
-                    {# Route for Dashboard should be the one showing stats, e.g., product_dashboard_overview_detail #}
-                    <li class="sidebar-item {{ 'active' if request.endpoint == 'product_dashboard_overview_detail' else '' }}">
-                        <a href="{{ url_for('product_dashboard_overview_detail') }}">
-                            <i class="fas fa-home"></i><span>Dashboard</span>
+                <ul>
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'product_dashboard_overview' else '' }}">
+                        <a href="{{ url_for('product_dashboard_overview') }}">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
                         </a>
                     </li>
-                    {# Route for Quản lý QR - assuming qr_generator_tool for now, adjust if different #}
-                    <li class="sidebar-item {{ 'active' if request.endpoint == 'qr_generator_tool' else '' }}">
-                        <a href="{{ url_for('qr_generator_tool') }}">
-                            <i class="fas fa-qrcode"></i><span>Quản lý QR</span>
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_nhap_kho_quet_page' else '' }}">
+                        <a href="{{ url_for('pd_nhap_kho_quet_page') }}">
+                            <i class="fas fa-arrow-circle-down"></i>
+                            <span>Nhập kho</span>
                         </a>
                     </li>
-                    {# Route for Sản phẩm - pd_ton_kho_quan_ly shows product list #}
-                    <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_ton_kho_quan_ly' or request.endpoint == 'pd_nhap_san_pham_moi' else '' }}">
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_xuat_kho_quet_page' else '' }}">
+                        <a href="{{ url_for('pd_xuat_kho_quet_page') }}">
+                            <i class="fas fa-arrow-circle-up"></i>
+                            <span>Xuất kho</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_ton_kho_quan_ly' else '' }}">
                         <a href="{{ url_for('pd_ton_kho_quan_ly') }}">
-                            <i class="fas fa-box-archive"></i><span>Sản phẩm</span>
+                            <i class="fas fa-boxes-stacked"></i>
+                            <span>Tồn kho</span>
                         </a>
                     </li>
                     <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_bao_cao_xem' else '' }}">
                         <a href="{{ url_for('pd_bao_cao_xem') }}">
-                            <i class="fas fa-chart-line"></i><span>Báo cáo & thống kê</span>
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Báo cáo</span>
                         </a>
                     </li>
-
-                    <!-- Example of a submenu, if needed in future, adapt from old structure -->
-                    <!--
-                    <li class="sidebar-item has-submenu {{ 'active' if request.endpoint in ['pd_nhap_kho_quet_page', 'pd_xuat_kho_quet_page'] else '' }}">
-                        <a href="#"><i class="fas fa-exchange-alt"></i><span>Nhập/Xuất Kho</span> <i class="fas fa-angle-down arrow"></i></a>
-                        <ul class="submenu">
-                            <li><a href="{{ url_for('pd_nhap_kho_quet_page', category_slug='thuc-pham') }}">Nhập kho (Quét)</a></li>
-                            <li><a href="{{ url_for('pd_xuat_kho_quet_page') }}">Xuất kho (Quét)</a></li>
-                        </ul>
-                    </li>
-                    -->
                     <li class="sidebar-item sidebar-item-bottom {{ 'active' if request.endpoint == 'pd_user_profile' else '' }}">
-                        <a href="{{ url_for('pd_user_profile') }}"><i class="fas fa-user-cog"></i><span>Tài khoản</span></a>
+                        <a href="{{ url_for('pd_user_profile') }}">
+                            <i class="fas fa-user-cog"></i>
+                            <span>Tài khoản</span>
+                        </a>
                     </li>
                 </ul>
             </nav>
@@ -128,16 +423,15 @@
             {% endblock %}
         </main>
 
-       {# Mobile navigation - kept existing logic, can be simplified if needed #}
-       {% if mobile_nav_type == 'main_dashboard_nav' %}
+        {# Mobile navigation #}
         <nav class="mobile-bottom-nav mobile-only-element">
-            <a href="{{ url_for('product_dashboard_overview_detail') }}" class="nav-item {{ 'active' if request.endpoint == 'product_dashboard_overview_detail' else '' }}"> {# Link to Dashboard #}
+            <a href="{{ url_for('product_dashboard_overview') }}" class="nav-item {{ 'active' if request.endpoint == 'product_dashboard_overview' else '' }}">
                 <i class="fas fa-home"></i>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a href="{{ url_for('pd_ton_kho_quan_ly') }}" class="nav-item {{ 'active' if request.endpoint == 'pd_ton_kho_quan_ly' else '' }}"> {# Link to Sản phẩm #}
-                <i class="fas fa-box-archive"></i>
-                <span class="nav-text">Sản phẩm</span>
+            <a href="{{ url_for('pd_ton_kho_quan_ly') }}" class="nav-item {{ 'active' if request.endpoint == 'pd_ton_kho_quan_ly' else '' }}">
+                <i class="fas fa-boxes-stacked"></i>
+                <span class="nav-text">Tồn kho</span>
             </a>
             <a href="{{ url_for('render_mobile_scan_page') }}" class="nav-item nav-item-main {{ 'active' if request.endpoint == 'render_mobile_scan_page' else '' }}">
                 <div class="icon-wrapper">
@@ -146,31 +440,14 @@
                 </div>
             </a>
             <a href="{{ url_for('pd_bao_cao_xem') }}" class="nav-item {{ 'active' if request.endpoint == 'pd_bao_cao_xem' else '' }}">
-                <i class="fas fa-chart-line"></i>
+                <i class="fas fa-chart-pie"></i>
                 <span class="nav-text">Báo cáo</span>
             </a>
             <a href="{{ url_for('pd_user_profile') }}" class="nav-item {{ 'active' if request.endpoint == 'pd_user_profile' else '' }}">
-                <i class="fas fa-user"></i>
-                <span class="nav-text">Tôi</span>
+                <i class="fas fa-user-cog"></i>
+                <span class="nav-text">Tài khoản</span>
             </a>
         </nav>
-        {% elif mobile_nav_type == 'category_detail_nav' %}
-        {# This nav type might need re-evaluation based on new sidebar structure #}
-        <nav class="mobile-bottom-nav mobile-only-element">
-            <a href="{{ url_for('product_dashboard_overview_detail') }}" class="nav-item">
-                <i class="fas fa-arrow-left"></i> <span class="nav-text">Dashboard</span>
-            </a>
-             <a href="{{ url_for('render_mobile_scan_page', category_slug=category_slug if category_slug else None ) }}" class="nav-item nav-item-main {{ 'active' if request.endpoint == 'render_mobile_scan_page' else '' }}">
-                <div class="icon-wrapper">
-                    <i class="fas fa-qrcode"></i>
-                    <span class="nav-text">Quét Mã</span>
-                </div>
-            </a>
-            <a href="{{ url_for('pd_ton_kho_quan_ly', category_slug=category_slug if category_slug else None) }}" class="nav-item">
-                 <i class="fas fa-boxes-stacked"></i><span class="nav-text">Tồn kho</span>
-            </a>
-        </nav>
-        {% endif %}
     </div>
 
     <script>

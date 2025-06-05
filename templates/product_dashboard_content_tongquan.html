@@ -1,39 +1,227 @@
 {% extends "product_dashboard_layout.html" %}
 
-{% block page_specific_title %}Danh mục lựa chọn{% endblock %} {# Đổi title cho phù hợp #}
+{% block page_specific_title %}Dashboard - Tổng quan{% endblock %}
 
 {% block product_dashboard_content %}
-<div class="category-column-grid">
-    <a href="{{ url_for('manage_category_placeholder', category_slug='thuc-pham') }}" class="category-column-card">
-        <img src="https://png.pngtree.com/thumb_back/fw800/background/20250408/pngtree-aisle-full-of-packaged-food-products-in-supermarket-image_17172476.jpg" alt="Quản lý Hàng Thực phẩm" class="category-card-image">
-        <div class="category-card-overlay">
-            <h3 class="category-card-title">Quản lý Hàng Thực phẩm</h3>
+<!-- Dashboard Stats Section -->
+<div class="dashboard-stats-section" style="margin-bottom: 2rem;">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+        <!-- Stat Card 1: Tổng số QR -->
+        <div class="stat-card">
+            <div class="stat-header">
+                <h3 class="stat-title">Tổng số QR</h3>
+                <div class="stat-icon-wrapper">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+            </div>
+            <p class="stat-value">1,234</p>
+            <p class="stat-meta">
+                <i class="fas fa-arrow-up text-green-500"></i>
+                <span style="margin-left: 0.25rem;">12% so với tháng trước</span>
+            </p>
         </div>
-    </a>
 
-    <a href="{{ url_for('manage_category_placeholder', category_slug='gia-dung') }}" class="category-column-card">
-        <img src="https://blog.dktcdn.net/files/nguon-hang-do-gia-dung-gia-re-1-e1507186249781.jpg" alt="Quản lý Đồ gia dụng" class="category-card-image">
-        <div class="category-card-overlay">
-            <h3 class="category-card-title">Quản lý Đồ gia dụng</h3>
+        <!-- Stat Card 2: Sản phẩm -->
+        <div class="stat-card">
+            <div class="stat-header">
+                <h3 class="stat-title">Sản phẩm</h3>
+                <div class="stat-icon-wrapper">
+                    <i class="fas fa-box"></i>
+                </div>
+            </div>
+            <p class="stat-value">567</p>
+            <p class="stat-meta">
+                <i class="fas fa-arrow-up text-green-500"></i>
+                <span style="margin-left: 0.25rem;">8% so với tháng trước</span>
+            </p>
         </div>
-    </a>
 
-    <a href="{{ url_for('manage_category_placeholder', category_slug='thoi-trang') }}" class="category-column-card">
-        <img src="https://spacet-release.s3.ap-southeast-1.amazonaws.com/img/blog/2023-10-03/anh-sang-hop-ly-tao-su-dang-cap-651beab8c9649b0ef5ad95c2.webp" alt="Quản lý Thời trang" class="category-card-image">
-        <div class="category-card-overlay">
-            <h3 class="category-card-title">Quản lý Thời trang</h3>
+        <!-- Stat Card 3: Quét QR -->
+        <div class="stat-card">
+            <div class="stat-header">
+                <h3 class="stat-title">Quét QR</h3>
+                <div class="stat-icon-wrapper">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+            <p class="stat-value">8,901</p>
+            <p class="stat-meta">
+                <i class="fas fa-arrow-up text-green-500"></i>
+                <span style="margin-left: 0.25rem;">15% so với tháng trước</span>
+            </p>
         </div>
-    </a>
-
-    <a href="{{ url_for('manage_category_placeholder', category_slug='may-tinh-linh-kien') }}" class="category-column-card">
-        <img src="https://maytinhgiaredanang.com/wp-content/uploads/2024/04/ve-sinh-may-tinh-pc-tai-da-nang.jpg" alt="Máy tính & Linh kiện" class="category-card-image">
-        <div class="category-card-overlay">
-            <h3 class="category-card-title">Máy tính & Linh kiện</h3>
-        </div>
-    </a>
+    </div>
 </div>
 
+<!-- Category Management Section -->
+<div class="category-management-section" style="margin-bottom: 2rem;">
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--primary-brand-color); margin-bottom: 0.5rem;">Quản lý theo danh mục</h2>
+        <p style="color: var(--text-gray-600);">Chọn danh mục sản phẩm để bắt đầu quản lý</p>
+    </div>
+
+    <div class="category-column-grid">
+        <a href="{{ url_for('manage_category_placeholder', category_slug='thuc-pham') }}" class="category-column-card">
+            <img src="https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Quản lý Hàng Thực phẩm" class="category-card-image">
+            <div class="category-card-overlay">
+                <h3 class="category-card-title">Quản lý Hàng Thực phẩm</h3>
+            </div>
+        </a>
+
+        <a href="{{ url_for('manage_category_placeholder', category_slug='gia-dung') }}" class="category-column-card">
+            <img src="https://images.pexels.com/photos/6585751/pexels-photo-6585751.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Quản lý Đồ gia dụng" class="category-card-image">
+            <div class="category-card-overlay">
+                <h3 class="category-card-title">Quản lý Đồ gia dụng</h3>
+            </div>
+        </a>
+
+        <a href="{{ url_for('manage_category_placeholder', category_slug='thoi-trang') }}" class="category-column-card">
+            <img src="https://images.pexels.com/photos/996329/pexels-photo-996329.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Quản lý Thời trang" class="category-card-image">
+            <div class="category-card-overlay">
+                <h3 class="category-card-title">Quản lý Thời trang</h3>
+            </div>
+        </a>
+
+        <a href="{{ url_for('manage_category_placeholder', category_slug='may-tinh-linh-kien') }}" class="category-column-card">
+            <img src="https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Máy tính & Linh kiện" class="category-card-image">
+            <div class="category-card-overlay">
+                <h3 class="category-card-title">Máy tính & Linh kiện</h3>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Recent Activity Section -->
+<div class="recent-activity-section">
+    <div class="activity-list-card">
+        <div class="activity-list-header">
+            <h3 class="activity-list-title">Hoạt động gần đây</h3>
+            <button class="btn-icon" title="Xem thêm">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+        </div>
+        <div class="activity-list">
+            <div class="activity-item">
+                <div class="activity-item-icon">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+                <div class="activity-item-content">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <p class="activity-item-title">QR mới được tạo</p>
+                            <p class="activity-item-description">Mã QR cho sản phẩm "Smartphone X"</p>
+                        </div>
+                        <span class="activity-item-time">2 phút trước</span>
+                    </div>
+                </div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-item-icon">
+                    <i class="fas fa-box"></i>
+                </div>
+                <div class="activity-item-content">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <p class="activity-item-title">Sản phẩm mới thêm vào kho</p>
+                            <p class="activity-item-description">Đã nhập 200 sản phẩm vào kho A</p>
+                        </div>
+                        <span class="activity-item-time">15 phút trước</span>
+                    </div>
+                </div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-item-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="activity-item-content">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <p class="activity-item-title">Báo cáo được tạo</p>
+                            <p class="activity-item-description">Báo cáo tồn kho tháng 12/2024</p>
+                        </div>
+                        <span class="activity-item-time">1 giờ trước</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
 <div class="welcome-message" style="text-align: center; padding-top: 20px; margin-top: 20px;">
-    <p style="font-size: 1.1em; color: var(--text-muted);">Chọn một danh mục sản phẩm để bắt đầu quản lý, hoặc <a href="{{ url_for('product_dashboard_overview_detail') }}">xem tổng quan hệ thống chi tiết</a> (chỉ trên Desktop).</p>
+    <p style="font-size: 1.1em; color: var(--text-muted);">
+        Hoặc <a href="{{ url_for('product_dashboard_overview_detail') }}" style="color: var(--secondary-brand-color); text-decoration: none; font-weight: 500;">xem tổng quan hệ thống chi tiết</a> (chỉ trên Desktop).
+    </p>
 </div>
+
+<style>
+/* Dashboard specific styles */
+.dashboard-stats-section .grid {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .dashboard-stats-section .grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .dashboard-stats-section .grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.text-green-500 {
+    color: #10B981;
+}
+
+.category-management-section h2 {
+    font-family: var(--font-family-sans);
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Enhanced hover effects for category cards */
+.category-column-card {
+    transition: all 0.3s ease;
+}
+
+.category-column-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.category-column-card:hover .category-card-image {
+    transform: scale(1.1);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 991.98px) {
+    .dashboard-stats-section .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .category-management-section h2 {
+        font-size: 1.25rem;
+    }
+
+    .activity-item-content > div {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .activity-item-time {
+        margin-top: 0.25rem;
+        margin-left: 0 !important;
+    }
+}
+</style>
 {% endblock %}
