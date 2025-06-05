@@ -1,0 +1,262 @@
+{% extends "product_dashboard_layout.html" %}
+{% block page_specific_title %}Xuất Kho{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="mb-8">
+    <div class="bg-gradient-to-r from-[#1a4d2e] to-[#2d9596] rounded-2xl shadow-lg p-6 md:p-8">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-white mb-2 tracking-tight drop-shadow-lg flex items-center gap-3">
+            <i class="fas fa-box-open"></i> Xuất Kho
+        </h1>
+        <p class="text-white/90 text-lg max-w-2xl">
+            Quét mã QR để xuất kho sản phẩm. Chỉ nhận dạng những mã QR được tạo tự động khi nhập kho.
+        </p>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-md p-6">
+    {# QR Scanner Section #}
+    <div class="mb-8">
+        <div id="reader" class="w-full max-w-2xl mx-auto border-2 border-slate-200 rounded-xl overflow-hidden aspect-[4/3] relative">
+            <div class="scan-corner scan-corner-top-left"></div>
+            <div class="scan-corner scan-corner-top-right"></div>
+            <div class="scan-corner scan-corner-bottom-left"></div>
+            <div class="scan-corner scan-corner-bottom-right"></div>
+        </div>
+        <div class="text-center mt-4">
+            <button id="startButton" class="btn btn-primary me-2">
+                <i class="fas fa-play me-2"></i>Bắt đầu quét
+            </button>
+            <button id="stopButton" class="btn btn-danger" disabled>
+                <i class="fas fa-stop me-2"></i>Dừng quét
+            </button>
+        </div>
+    </div>
+
+    {# Product Info Section - Initially Hidden #}
+    <div id="productInfo" class="hidden">
+        <div class="border-t border-slate-200 pt-6">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Thông tin sản phẩm</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tên sản phẩm</label>
+                    <input type="text" id="productName" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Mã sản phẩm</label>
+                    <input type="text" id="productId" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Số lượng tồn kho</label>
+                    <input type="text" id="currentStock" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Số lượng xuất <span class="text-red-500">*</span></label>
+                    <input type="number" id="exportQuantity" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2d9596] focus:border-[#2d9596] focus:outline-none" required>
+                </div>
+            </div>
+            <button onclick="processExport()" class="w-full bg-[#2d9596] hover:bg-[#1a4d2e] text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+                <i class="fas fa-box-open mr-2"></i>Xác nhận xuất kho
+            </button>
+        </div>
+    </div>
+
+    {# Loading Indicator #}
+    <div id="loading" class="hidden">
+        <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2d9596]"></div>
+            <span class="ml-3 text-slate-600">Đang xử lý...</span>
+        </div>
+    </div>
+
+    {# Error Message #}
+    <div id="error" class="hidden">
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <p class="text-sm" id="errorMessage"></p>
+        </div>
+    </div>
+</div>
+
+<style>
+.scan-corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #0ea5e9;
+}
+.scan-corner-top-left {
+    top: 25%;
+    left: 25%;
+    border-right: none;
+    border-bottom: none;
+}
+.scan-corner-top-right {
+    top: 25%;
+    right: 25%;
+    border-left: none;
+    border-bottom: none;
+}
+.scan-corner-bottom-left {
+    bottom: 25%;
+    left: 25%;
+    border-right: none;
+    border-top: none;
+}
+.scan-corner-bottom-right {
+    bottom: 25%;
+    right: 25%;
+    border-left: none;
+    border-top: none;
+}
+</style>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const html5QrcodeScanner = new Html5Qrcode("reader");
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    let isScanning = false;
+
+    startButton.addEventListener('click', startScanning);
+    stopButton.addEventListener('click', stopScanning);
+
+    function startScanning() {
+        const config = {
+            fps: 10,
+            qrbox: {
+                width: Math.floor(document.getElementById('reader').offsetWidth * 0.5),
+                height: Math.floor(document.getElementById('reader').offsetHeight * 0.5)
+            },
+            aspectRatio: 4/3
+        };
+
+        html5QrcodeScanner.start(
+            { facingMode: "environment" },
+            config,
+            onScanSuccess,
+            onScanError
+        ).then(() => {
+            isScanning = true;
+            startButton.disabled = true;
+            stopButton.disabled = false;
+        }).catch((err) => {
+            showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
+        });
+    }
+
+    function stopScanning() {
+        if (html5QrcodeScanner && isScanning) {
+            html5QrcodeScanner.stop().then(() => {
+                isScanning = false;
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            });
+        }
+    }
+
+    function onScanSuccess(decodedText) {
+        if (isScanning) {
+            stopScanning();
+            processScannedCode(decodedText);
+        }
+    }
+
+    function onScanError(errorMessage) {
+        // Ignore non-critical errors
+        console.warn(`Lỗi quét (có thể bỏ qua): ${errorMessage}`);
+    }
+
+    function processScannedCode(qrCode) {
+        showLoading();
+        // Call API to get product info
+        fetch('/api/get-product-info-from-scan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ scanned_data: qrCode })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.error) {
+                showError(data.error);
+                return;
+            }
+            // Show product info
+            document.getElementById('productName').value = data.name;
+            document.getElementById('productId').value = data.product_id_internal;
+            document.getElementById('currentStock').value = data.qty;
+            document.getElementById('exportQuantity').value = '1';
+            document.getElementById('exportQuantity').max = data.qty;
+            document.getElementById('productInfo').classList.remove('hidden');
+        })
+        .catch(error => {
+            hideLoading();
+            showError('Lỗi khi xử lý mã QR: ' + error.message);
+        });
+    }
+
+    function processExport() {
+        const quantity = parseInt(document.getElementById('exportQuantity').value);
+        const currentStock = parseInt(document.getElementById('currentStock').value);
+        const productId = document.getElementById('productId').value;
+
+        if (!quantity || quantity < 1) {
+            showError('Vui lòng nhập số lượng hợp lệ (lớn hơn 0)');
+            return;
+        }
+
+        if (quantity > currentStock) {
+            showError('Số lượng xuất không thể lớn hơn số lượng tồn kho');
+            return;
+        }
+
+        showLoading();
+        fetch('/api/update-inventory-and-log', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                quantity: quantity,
+                action: 'xuat'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.error) {
+                showError(data.error);
+                return;
+            }
+            alert('Xuất kho thành công!');
+            // Reset form
+            document.getElementById('productInfo').classList.add('hidden');
+            document.getElementById('exportQuantity').value = '';
+        })
+        .catch(error => {
+            hideLoading();
+            showError('Lỗi khi xuất kho: ' + error.message);
+        });
+    }
+
+    function showLoading() {
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('error').classList.add('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loading').classList.add('hidden');
+    }
+
+    function showError(message) {
+        const errorDiv = document.getElementById('error');
+        const errorMessage = document.getElementById('errorMessage');
+        errorMessage.textContent = message;
+        errorDiv.classList.remove('hidden');
+    }
+});
+</script>
+{% endblock %}

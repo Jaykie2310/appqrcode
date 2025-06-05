@@ -9,76 +9,432 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: 'Roboto', sans-serif; background-color: #f8f9fa; }
-        .scan-container { max-width: 800px; margin: 0 auto; padding: 20px; }
-        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-        .result-section { background-color: #fff; padding: 20px; border-radius: 10px; margin-top: 20px; }
-        .nutrition-info { background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        :root {
+            --primary-color: #1a4d2e;
+            --secondary-color: #2d9596;
+            --accent-color: #9ad0c2;
+            --background-color: #f4f7f6;
+            --surface-color: #ffffff;
+            --text-primary: #212529;
+            --text-secondary: #495057;
+            --border-color: #dee2e6;
+            --success-color: #10B981;
+            --danger-color: #EF4444;
+            --warning-color: #F59E0B;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, var(--background-color) 0%, #e8f5f0 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .scan-container { 
+            max-width: 100%; 
+            margin: 0; 
+            padding: 16px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mobile-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0 20px 0;
+            position: sticky;
+            top: 0;
+            background: var(--background-color);
+            z-index: 100;
+        }
+
+        .back-button {
+            background: var(--surface-color);
+            border: none;
+            border-radius: 12px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            color: var(--text-primary);
+            font-size: 18px;
+            transition: all 0.2s ease;
+        }
+
+        .back-button:active {
+            transform: scale(0.95);
+            background: var(--accent-color);
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .card { 
+            border: none; 
+            border-radius: 20px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            background: var(--surface-color);
+            overflow: hidden;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 20px;
+            border: none;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-tabs {
+            border: none;
+            background: var(--background-color);
+            border-radius: 16px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .nav-tabs .nav-item {
+            flex: 1;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 14px;
+            padding: 12px 16px;
+            text-align: center;
+            transition: all 0.2s ease;
+            background: transparent;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--surface-color);
+            color: var(--secondary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .nav-tabs .nav-link:active {
+            transform: scale(0.98);
+        }
+
+        .result-section { 
+            background: var(--surface-color); 
+            padding: 20px; 
+            border-radius: 16px; 
+            margin-top: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+
+        .nutrition-info { 
+            background: linear-gradient(135deg, var(--background-color) 0%, #f0f9f7 100%); 
+            padding: 20px; 
+            border-radius: 16px; 
+            margin-top: 20px;
+            border: 1px solid var(--accent-color);
+        }
+
         #reader {
             width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            border: 2px solid #ddd;
-            border-radius: 10px;
+            height: 60vh;
+            max-height: 400px;
+            margin: 0 auto 20px auto;
+            border: 3px solid var(--secondary-color);
+            border-radius: 20px;
             overflow: hidden;
             position: relative;
-            aspect-ratio: 4/3;
+            background: #000;
         }
+
         #reader video {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        /* Khung quét */
+
         .scan-region-highlight {
-            border: 2px solid #0ea5e9 !important;
-            border-radius: 0 !important;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            border: 3px solid var(--secondary-color) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
         }
+
         .scan-region-highlight-svg {
-            stroke: #0ea5e9 !important;
+            stroke: var(--secondary-color) !important;
+            stroke-width: 3px !important;
         }
-        /* Ẩn các phần tử HTML5-QRCode mặc định */
+
         #reader__scan_region img {
             display: none;
         }
+
         #reader__dashboard {
             display: none !important;
         }
-        /* Góc quét */
+
         .scan-corner {
             position: absolute;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #0ea5e9;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--secondary-color);
+            z-index: 10;
         }
+
         .scan-corner-top-left {
-            top: 25%;
-            left: 25%;
+            top: 20%;
+            left: 20%;
             border-right: none;
             border-bottom: none;
+            border-top-left-radius: 8px;
         }
+
         .scan-corner-top-right {
-            top: 25%;
-            right: 25%;
+            top: 20%;
+            right: 20%;
             border-left: none;
             border-bottom: none;
+            border-top-right-radius: 8px;
         }
+
         .scan-corner-bottom-left {
-            bottom: 25%;
-            left: 25%;
+            bottom: 20%;
+            left: 20%;
             border-right: none;
             border-top: none;
+            border-bottom-left-radius: 8px;
         }
+
         .scan-corner-bottom-right {
-            bottom: 25%;
-            right: 25%;
+            bottom: 20%;
+            right: 20%;
             border-left: none;
             border-top: none;
+            border-bottom-right-radius: 8px;
         }
-        .tab-content { padding: 20px 0; }
-        .nav-tabs .nav-link { color: #6c757d; font-weight: 500; }
-        .nav-tabs .nav-link.active { color: #0ea5e9; font-weight: 600; }
+
+        .scan-animation {
+            position: absolute;
+            top: 20%;
+            left: 20%;
+            right: 20%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--secondary-color), transparent);
+            animation: scan-line 2s linear infinite;
+        }
+
+        @keyframes scan-line {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(240px); opacity: 0; }
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 16px;
+            padding: 16px 24px;
+            min-height: 56px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #258283 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(45, 149, 150, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            box-shadow: none;
+            opacity: 0.6;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+        }
+
+        .form-control {
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            background: var(--surface-color);
+            min-height: 56px;
+        }
+
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(45, 149, 150, 0.1);
+            outline: none;
+            transform: translateY(-1px);
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .mb-3 {
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            border-radius: 16px;
+            padding: 16px 20px;
+            border: none;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%);
+            color: var(--danger-color);
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            border-width: 4px;
+            border-color: var(--secondary-color);
+            border-right-color: transparent;
+        }
+
+        #loading {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .file-upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            background: var(--background-color);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--secondary-color);
+            background: rgba(45, 149, 150, 0.05);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--secondary-color);
+            background: rgba(45, 149, 150, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--secondary-color);
+            margin-bottom: 16px;
+        }
+
+        .upload-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .scan-container {
+                padding: 12px;
+            }
+
+            #reader {
+                height: 50vh;
+                border-radius: 16px;
+            }
+
+            .control-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .row {
+                margin: 0;
+            }
+
+            .col-md-6 {
+                padding: 0;
+                margin-bottom: 16px;
+            }
+        }
+
+        /* Haptic feedback */
+        .haptic-light {
+            animation: haptic-light 0.1s ease-in-out;
+        }
+
+        @keyframes haptic-light {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.98); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -88,7 +444,6 @@
                 <h2 class="mb-0"><i class="fas fa-barcode me-2"></i>Quét Mã Vạch</h2>
             </div>
             <div class="card-body">
-                <!-- Tab Navigation -->
                 <ul class="nav nav-tabs" id="scanTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera" type="button" role="tab">
@@ -102,12 +457,9 @@
                     </li>
                 </ul>
 
-                <!-- Tab Content -->
                 <div class="tab-content" id="scanTabsContent">
-                    <!-- Camera Tab -->
                     <div class="tab-pane fade show active" id="camera" role="tabpanel">
                         <div id="reader">
-                            <!-- Góc quét -->
                             <div class="scan-corner scan-corner-top-left"></div>
                             <div class="scan-corner scan-corner-top-right"></div>
                             <div class="scan-corner scan-corner-bottom-left"></div>
@@ -123,7 +475,6 @@
                         </div>
                     </div>
 
-                    <!-- Upload Tab -->
                     <div class="tab-pane fade" id="upload" role="tabpanel">
                         <form id="barcode-upload-form" enctype="multipart/form-data">
                             <div class="mb-3">
@@ -137,21 +488,20 @@
                     </div>
                 </div>
 
-                <!-- Kết quả quét -->
                 <div id="scan-result" class="result-section" style="display: none;">
-                    <h4 class="mb-4">Thông tin sản phẩm</h4>
+                    <h4 class="mb-4">Thông tin sản phẩm (từ Open Food Facts)</h4>
 
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Tên sản phẩm</label>
-                                <input type="text" id="productName" class="form-control" readonly>
+                                <input type="text" id="productName" class="form-control">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Nhà sản xuất</label>
-                                <input type="text" id="manufacturer" class="form-control" readonly>
+                                <input type="text" id="manufacturer" class="form-control">
                             </div>
                         </div>
                     </div>
@@ -160,42 +510,42 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Xuất xứ</label>
-                                <input type="text" id="origin" class="form-control" readonly>
+                                <input type="text" id="origin" class="form-control">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Dung tích/Khối lượng</label>
-                                <input type="text" id="volume" class="form-control" readonly>
+                                <input type="text" id="volume" class="form-control">
                             </div>
                         </div>
                     </div>
 
                     <div class="nutrition-info">
-                        <h5 class="mb-3">Thông tin dinh dưỡng (trên 100g)</h5>
+                        <h5 class="mb-3">Thông tin dinh dưỡng (trên 100g) - nếu có</h5>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Năng lượng</label>
-                                    <input type="text" id="energy" class="form-control" readonly>
+                                    <input type="text" id="energy" class="form-control">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Protein</label>
-                                    <input type="text" id="proteins" class="form-control" readonly>
+                                    <input type="text" id="proteins" class="form-control">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Carbohydrates</label>
-                                    <input type="text" id="carbohydrates" class="form-control" readonly>
+                                    <input type="text" id="carbohydrates" class="form-control">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Chất béo</label>
-                                    <input type="text" id="fat" class="form-control" readonly>
+                                    <input type="text" id="fat" class="form-control">
                                 </div>
                             </div>
                         </div>
@@ -207,12 +557,12 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Số lượng</label>
-                                    <input type="number" id="quantity" class="form-control" min="1" required>
+                                    <input type="number" id="quantity" class="form-control" min="1" value="1" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Ngày nhập</label>
+                                    <label class="form-label">Ngày quét/nhập</label>
                                     <input type="text" id="scanDate" class="form-control" readonly>
                                 </div>
                             </div>
@@ -223,7 +573,6 @@
                     </div>
                 </div>
 
-                <!-- Loading spinner -->
                 <div id="loading" class="text-center my-4" style="display: none;">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Đang xử lý...</span>
@@ -231,7 +580,6 @@
                     <p class="mt-2">Đang xử lý...</p>
                 </div>
 
-                <!-- Thông báo lỗi -->
                 <div id="error" class="alert alert-danger mt-3" style="display: none;"></div>
             </div>
         </div>
@@ -252,8 +600,8 @@
             const uploadTab = document.getElementById('upload-tab');
 
             let isScanning = false;
-            let lastScannedCode = null;
-            let scanTimeout = null;
+            // *** THAY ĐỔI 1: Khai báo biến lưu mã vạch ***
+            let currentScannedBarcode = null;
 
             // Xử lý chuyển tab
             cameraTab.addEventListener('shown.bs.tab', function (e) {
@@ -300,7 +648,7 @@
                 };
 
                 html5QrcodeScanner.start(
-                    { facingMode: { exact: "environment" } },
+                    { facingMode: { exact: "environment" } }, // Ưu tiên camera sau
                     config,
                     onScanSuccess,
                     onScanError
@@ -310,32 +658,53 @@
                     stopButton.disabled = false;
                 }).catch((err) => {
                     console.error(`Không thể khởi động camera: ${err}`);
-                    showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
+                    showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera và thử lại.');
+                     html5QrcodeScanner.start( // Thử lại với bất kỳ camera nào nếu camera sau lỗi
+                        undefined, // Bỏ qua facingMode để thử camera trước
+                        config,
+                        onScanSuccess,
+                        onScanError
+                    ).then(() => {
+                        isScanning = true;
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                    }).catch((errFallback) => {
+                         console.error(`Không thể khởi động camera (fallback): ${errFallback}`);
+                         showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập.');
+                    });
                 });
             }
 
             function stopScanning() {
-                html5QrcodeScanner.stop().then(() => {
+                if (html5QrcodeScanner && isScanning) {
+                    html5QrcodeScanner.stop().then(() => {
+                        isScanning = false;
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                    }).catch((err) => {
+                        console.error(`Lỗi khi dừng camera: ${err}`);
+                        // Ngay cả khi có lỗi, vẫn cập nhật trạng thái UI
+                        isScanning = false;
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                    });
+                } else {
                     isScanning = false;
                     startButton.disabled = false;
                     stopButton.disabled = true;
-                }).catch((err) => {
-                    console.error(`Lỗi khi dừng camera: ${err}`);
-                });
+                }
             }
 
             function onScanSuccess(decodedText) {
                 if (isScanning) {
-                    stopScanning();
+                    stopScanning(); // Dừng camera sau khi quét thành công
                     processBarcode(decodedText);
                 }
             }
 
-            function onScanError(error) {
-                // Chỉ log lỗi nghiêm trọng
-                if (error !== 'QR code parse error, error = NotFoundException: No MultiFormat Readers were able to detect the code.') {
-                    console.error(`Lỗi quét: ${error}`);
-                }
+            function onScanError(errorMessage) {
+                // Có thể bỏ qua một số lỗi không quan trọng hoặc log lại
+                // console.warn(`Lỗi quét (có thể bỏ qua): ${errorMessage}`);
             }
 
             function processBarcode(barcode) {
@@ -343,24 +712,48 @@
                     showError('Không thể đọc mã vạch');
                     return;
                 }
+                // *** THAY ĐỔI 2: Lưu mã vạch đã quét ***
+                currentScannedBarcode = barcode;
                 showLoading();
-                fetch('/api/scan', {
+                // Gọi API của bạn để lấy thông tin sản phẩm từ Open Food Facts
+                fetch('/api/scan', { // Đảm bảo đây là API endpoint đúng của bạn
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ code: barcode })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errData => {
+                            throw new Error(errData.message || `Lỗi ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.success) {
+                    if (data.success && data.product) {
                         showResult(data.product);
                     } else {
-                        showError(data.message || 'Không thể đọc mã vạch');
+                        // Nếu không tìm thấy trên Open Food Facts, vẫn cho phép nhập thủ công
+                        showError(data.message || 'Không tìm thấy thông tin trên Open Food Facts. Bạn có thể nhập thủ công.');
+                        document.getElementById('productName').value = ''; // Xóa tên SP cũ
+                        document.getElementById('manufacturer').value = '';
+                        document.getElementById('origin').value = '';
+                        document.getElementById('volume').value = '';
+                        document.getElementById('energy').value = '';
+                        document.getElementById('proteins').value = '';
+                        document.getElementById('carbohydrates').value = '';
+                        document.getElementById('fat').value = '';
+                        document.getElementById('scanDate').value = new Date().toISOString().slice(0, 10); // Ngày hiện tại
+                        scanResult.style.display = 'block'; // Hiển thị form để nhập
                     }
                 })
                 .catch(err => {
                     showError('Lỗi khi xử lý mã vạch: ' + err.message);
+                    // Cho phép nhập thủ công nếu có lỗi API
+                    document.getElementById('scanDate').value = new Date().toISOString().slice(0, 10);
+                    scanResult.style.display = 'block';
                 })
                 .finally(() => {
                     hideLoading();
@@ -370,23 +763,33 @@
             uploadForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const formData = new FormData(this);
+                const fileInput = document.getElementById('file-upload');
+
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    showError('Vui lòng chọn một file ảnh.');
+                    return;
+                }
 
                 try {
                     showLoading();
-                    const response = await fetch('/api/process_barcode_image', {
+                    const response = await fetch('/api/process_barcode_image', { // API endpoint xử lý ảnh
                         method: 'POST',
                         body: formData
                     });
-
                     const data = await response.json();
-
-                    if (data.success) {
+                    if (data.success && data.product) {
+                         // *** THAY ĐỔI: Lưu mã vạch từ ảnh ***
+                        currentScannedBarcode = data.product.barcode; // Giả sử API trả về barcode trong product
                         showResult(data.product);
                     } else {
-                        showError(data.message || 'Không thể đọc mã vạch');
+                        showError(data.message || 'Không thể đọc mã vạch từ ảnh.');
+                        document.getElementById('scanDate').value = new Date().toISOString().slice(0, 10);
+                        scanResult.style.display = 'block'; // Hiển thị form để nhập
                     }
                 } catch (err) {
                     showError('Lỗi khi xử lý ảnh: ' + err.message);
+                    document.getElementById('scanDate').value = new Date().toISOString().slice(0, 10);
+                    scanResult.style.display = 'block';
                 } finally {
                     hideLoading();
                 }
@@ -394,19 +797,38 @@
 
             stockInButton.addEventListener('click', async function() {
                 const quantity = document.getElementById('quantity').value;
-                if (!quantity || quantity < 1) {
-                    showError('Vui lòng nhập số lượng hợp lệ');
+                const productName = document.getElementById('productName').value;
+
+                if (!productName.trim()) {
+                    showError('Tên sản phẩm không được để trống.');
+                    return;
+                }
+                if (!quantity || parseInt(quantity) < 1) {
+                    showError('Vui lòng nhập số lượng hợp lệ (lớn hơn 0).');
+                    return;
+                }
+                // *** THAY ĐỔI 3: Kiểm tra currentScannedBarcode trước khi tạo productData ***
+                // Nếu không có currentScannedBarcode (ví dụ: nhập hoàn toàn thủ công), có thể để là null
+                // Backend sẽ xử lý trường hợp barcode là null hoặc không tìm thấy.
+                // Tuy nhiên, nếu quy trình là "quét rồi nhập", thì currentScannedBarcode nên có.
+                if (!currentScannedBarcode && confirm("Bạn chưa quét mã vạch nào gần đây. Thông tin sản phẩm sẽ được tạo mới hoàn toàn (nếu chưa có trong CSDL theo tên). Tiếp tục?")) {
+                    // Cho phép tiếp tục nếu người dùng xác nhận nhập thủ công mà không có barcode
+                } else if (!currentScannedBarcode) {
+                    showError('Không có mã vạch nào được quét. Vui lòng quét mã trước khi nhập kho.');
                     return;
                 }
 
+
                 const productData = {
-                    name: document.getElementById('productName').value,
+                    name: productName,
                     manufacturer: document.getElementById('manufacturer').value,
                     origin: document.getElementById('origin').value,
                     volume: document.getElementById('volume').value,
                     quantity: parseInt(quantity),
                     scan_date: document.getElementById('scanDate').value,
-                    nutrition_data: {
+                    // *** THAY ĐỔI 4: Thêm barcode vào productData ***
+                    barcode: currentScannedBarcode,
+                    nutrition_data: { // API của bạn có thể không cần hoặc xử lý khác nhau
                         energy: document.getElementById('energy').value,
                         proteins: document.getElementById('proteins').value,
                         carbohydrates: document.getElementById('carbohydrates').value,
@@ -416,7 +838,7 @@
 
                 try {
                     showLoading();
-                    const response = await fetch('/api/update-inventory', {
+                    const response = await fetch('/api/update-inventory', { // API endpoint của bạn
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -425,31 +847,44 @@
                     });
 
                     const result = await response.json();
+                    hideLoading();
 
                     if (result.success) {
-                        alert('Nhập kho thành công!');
-                        uploadForm.reset();
+                        alert('Nhập kho thành công! ' + (result.message || ''));
+                        // Reset các trường và trạng thái
                         scanResult.style.display = 'none';
+                        document.getElementById('productName').value = '';
+                        document.getElementById('manufacturer').value = '';
+                        document.getElementById('origin').value = '';
+                        document.getElementById('volume').value = '';
+                        document.getElementById('energy').value = '';
+                        document.getElementById('proteins').value = '';
+                        document.getElementById('carbohydrates').value = '';
+                        document.getElementById('fat').value = '';
+                        document.getElementById('quantity').value = 1; // Reset số lượng về 1
+                        currentScannedBarcode = null; // Reset mã vạch đã quét
+                        // Không cần hiển thị QR ở đây, vì nó sẽ ở trang Tồn Kho
                     } else {
                         showError(result.message || 'Lỗi khi nhập kho');
                     }
                 } catch (err) {
-                    showError('Lỗi khi nhập kho: ' + err.message);
-                } finally {
                     hideLoading();
+                    showError('Lỗi khi nhập kho: ' + err.message);
                 }
             });
 
             function showResult(product) {
-                document.getElementById('productName').value = product.name;
-                document.getElementById('manufacturer').value = product.manufacturer;
-                document.getElementById('origin').value = product.origin;
-                document.getElementById('volume').value = product.volume;
-                document.getElementById('energy').value = product.nutrition_data.energy + ' kcal/100g';
-                document.getElementById('proteins').value = product.nutrition_data.proteins + ' g/100g';
-                document.getElementById('carbohydrates').value = product.nutrition_data.carbohydrates + ' g/100g';
-                document.getElementById('fat').value = product.nutrition_data.fat + ' g/100g';
-                document.getElementById('scanDate').value = product.scan_date;
+                document.getElementById('productName').value = product.name || '';
+                document.getElementById('manufacturer').value = product.manufacturer || '';
+                document.getElementById('origin').value = product.origin || '';
+                document.getElementById('volume').value = product.volume || '';
+                if (product.nutrition_data) {
+                    document.getElementById('energy').value = (product.nutrition_data.energy || '') + (product.nutrition_data.energy && !String(product.nutrition_data.energy).includes('kcal') ? ' kcal/100g' : '');
+                    document.getElementById('proteins').value = (product.nutrition_data.proteins || '') + (product.nutrition_data.proteins && !String(product.nutrition_data.proteins).includes('g') ? ' g/100g' : '');
+                    document.getElementById('carbohydrates').value = (product.nutrition_data.carbohydrates || '') + (product.nutrition_data.carbohydrates && !String(product.nutrition_data.carbohydrates).includes('g') ? ' g/100g' : '');
+                    document.getElementById('fat').value = (product.nutrition_data.fat || '') + (product.nutrition_data.fat && !String(product.nutrition_data.fat).includes('g') ? ' g/100g' : '');
+                }
+                document.getElementById('scanDate').value = product.scan_date || new Date().toISOString().slice(0, 10);
 
                 scanResult.style.display = 'block';
                 error.style.display = 'none';
@@ -458,7 +893,7 @@
             function showError(message) {
                 error.textContent = message;
                 error.style.display = 'block';
-                scanResult.style.display = 'none';
+                // scanResult.style.display = 'none'; // Có thể không ẩn form kết quả để người dùng sửa
             }
 
             function showLoading() {

@@ -1,79 +1,516 @@
 {% extends "product_dashboard_layout.html" %}
-
 {% block page_specific_title %}Quản Lý Tồn Kho{% endblock %}
 
 {% block product_dashboard_content %}
-<div class="container mx-auto p-6" x-data="stockManager()">
-    <h2 class="text-4xl font-extrabold mb-10 text-gray-900 tracking-tight">Thông Tin Tồn Kho Sản Phẩm</h2>
-    <p class="mb-8 text-gray-700 text-lg">Quản lý số lượng sản phẩm trong kho. Bạn có thể thêm, sửa, xóa sản phẩm tại trang <a href="{{ url_for('qr_management_detail', category_slug='thuc-pham') }}" class="text-blue-600 underline">Quản lý Sản phẩm (Công cụ Sales)</a>.</p>
+{# Enhanced Header Section with Statistics #}
+<div class="mb-8">
+    <div class="bg-gradient-to-r from-[#1a4d2e] to-[#2d9596] rounded-2xl shadow-lg p-6 md:p-8">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div class="flex-1">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-white mb-2 tracking-tight drop-shadow-lg flex items-center gap-3">
+                    <i class="fas fa-boxes-stacked"></i> Tồn Kho Sản Phẩm
+                </h1>
+                <p class="text-white/90 text-lg max-w-2xl">
+                    Theo dõi, tìm kiếm và quản lý số lượng sản phẩm trong kho của bạn.
+                </p>
+            </div>
+            
+            {# Enhanced Statistics Section #}
+            <div class="w-full lg:w-auto">
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-4">
+                    <div class="bg-white/95 rounded-xl p-4 shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-slate-600 text-sm font-medium">Tổng sản phẩm</span>
+                            <i class="fas fa-box text-[#1a4d2e]"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-[#1a4d2e]">{{ products|length }}</span>
+                        <div class="text-xs text-slate-500 mt-1">Loại sản phẩm</div>
+                    </div>
+                    
+                    <div class="bg-white/95 rounded-xl p-4 shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-slate-600 text-sm font-medium">Tổng số lượng</span>
+                            <i class="fas fa-cubes text-[#2d9596]"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-[#2d9596]">{{ products|map(attribute='qty')|sum }}</span>
+                        <div class="text-xs text-slate-500 mt-1">Đơn vị</div>
+                    </div>
 
-    <div class="mb-8">
-        <a href="{{ url_for('qr_management_detail', category_slug='thuc-pham') }}" class="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">Quản lý Sản phẩm</a>
-    </div>
+                    <div class="bg-white/95 rounded-xl p-4 shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-slate-600 text-sm font-medium">Sắp hết hàng</span>
+                            <i class="fas fa-exclamation-triangle text-amber-500"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-amber-500">
+                            {{ products|selectattr('qty', '<=', 10)|list|length }}
+                        </span>
+                        <div class="text-xs text-slate-500 mt-1">Sản phẩm</div>
+                    </div>
 
-    {% if products %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-        {% for product in products %}
-        <div x-data="{ open: false, inputQty: 1, outputQty: 1 }" class="bg-white rounded-lg shadow-md border border-gray-200 p-6 cursor-pointer hover:shadow-lg transition duration-300 ease-in-out flex flex-col items-center" @click="open = !open">
-            <img src="{{ product.qrcode_url }}" alt="QR Code {{ product.name }}" class="w-32 h-32 object-contain mb-4" />
-            <h3 class="text-xl font-semibold text-gray-900 mb-1 hover:text-blue-600 transition duration-200" @click.stop="open = !open">{{ product.name }}</h3>
-            <p class="text-gray-700 mb-1 text-lg">Số lượng tồn: <span class="font-bold text-gray-900">{{ product.qty }}</span></p>
-            {% if product.category %}
-            <p class="text-gray-500 mb-4 text-sm uppercase tracking-wide font-medium">{{ product.category }}</p>
-            {% endif %}
-
-            <div x-show="open" class="w-full mt-4 border-t border-gray-300 pt-4 space-y-4" @click.stop>
-                <div>
-                    <label :for="'input-qty-' + {{ product.id }}" class="block text-gray-800 font-semibold mb-2">Nhập thêm</label>
-                    <input type="number" :id="'input-qty-' + {{ product.id }}" min="1" x-model.number="inputQty" placeholder="Số lượng nhập" class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
-                    <button @click="submitStock('nhap', {{ product.id }}, inputQty)" class="mt-3 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200">Xác nhận nhập</button>
+                    <div class="bg-white/95 rounded-xl p-4 shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-slate-600 text-sm font-medium">Hết hàng</span>
+                            <i class="fas fa-times-circle text-red-500"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-red-500">
+                            {{ products|selectattr('qty', '<=', 0)|list|length }}
+                        </span>
+                        <div class="text-xs text-slate-500 mt-1">Sản phẩm</div>
+                    </div>
                 </div>
-                <div>
-                    <label :for="'output-qty-' + {{ product.id }}" class="block text-gray-800 font-semibold mb-2">Xuất hàng</label>
-                    <input type="number" :id="'output-qty-' + {{ product.id }}" min="1" x-model.number="outputQty" placeholder="Số lượng xuất" class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
-                    <button @click="submitStock('xuat', {{ product.id }}, outputQty)" class="mt-3 w-full bg-white border border-blue-600 text-blue-600 py-2 rounded-md hover:bg-blue-50 transition duration-200">Xác nhận xuất</button>
+
+                {# Quick Actions #}
+                <div class="flex gap-3 mt-4">
+                    <a href="{{ url_for('render_mobile_scan_page') }}"
+                       class="flex-1 inline-flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 backdrop-blur-sm">
+                        <i class="fas fa-plus-circle mr-2"></i> Nhập kho
+                    </a>
+                    <div class="relative group">
+                        <button class="inline-flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden group-hover:block z-10">
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel mr-2"></i> Xuất Excel
+                            </a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onclick="printSelectedQR()">
+                                <i class="fas fa-print mr-2"></i> In mã QR
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="text-center text-gray-500 mt-16 text-lg">
-        Chưa có sản phẩm nào trong kho.
+</div>
+
+{# Action Bar for Selected Items #}
+<div id="selectedActions" class="hidden bg-white rounded-xl shadow-md p-4 mb-4">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <span class="text-slate-600" id="selectedCount">0 sản phẩm được chọn</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="editSelectedProducts()" class="inline-flex items-center px-4 py-2 bg-[#2d9596] text-white rounded-lg hover:bg-[#1a4d2e] transition-colors">
+                <i class="fas fa-edit mr-2"></i> Chỉnh sửa
+            </button>
+            <button onclick="deleteSelectedProducts()" class="inline-flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                <i class="fas fa-trash-alt mr-2"></i> Xóa
+            </button>
+        </div>
     </div>
-    {% endif %}
+</div>
+
+{# Edit Product Modal #}
+<div id="editModal" class="fixed inset-0 bg-gray-600/50 backdrop-blur-sm hidden items-center justify-center transition-all duration-300 ease-out opacity-0 scale-95">
+    <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md transform transition-all duration-300 ease-out scale-95 opacity-0">
+        <h3 class="text-xl font-bold text-slate-800 mb-4">Chỉnh sửa sản phẩm</h3>
+        <form id="editForm" onsubmit="updateProduct(event)">
+            <input type="hidden" id="editProductId">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Tên sản phẩm</label>
+                <input type="text" id="editName" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2d9596] focus:border-[#2d9596] focus:outline-none">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Số lượng</label>
+                <input type="number" id="editQty" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2d9596] focus:border-[#2d9596] focus:outline-none">
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
+                    Hủy
+                </button>
+                <button type="submit" class="px-4 py-2 text-white bg-[#2d9596] rounded-lg hover:bg-[#1a4d2e] transition-colors">
+                    Lưu thay đổi
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# Enhanced Search and Filter Section #}
+<div class="bg-white rounded-xl shadow-md p-4 mb-6">
+    <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+            <div class="relative">
+                <input type="text" 
+                       id="searchInput"
+                       placeholder="Tìm kiếm sản phẩm theo tên..." 
+                       class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[#2d9596] focus:border-[#2d9596] focus:outline-none transition"
+                       oninput="filterProducts()">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            </div>
+        </div>
+        
+        <div class="flex gap-4">
+            <select id="stockFilter" 
+                    class="px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[#2d9596] focus:outline-none"
+                    onchange="filterProducts()">
+                <option value="all">Tất cả trạng thái</option>
+                <option value="instock">Còn hàng</option>
+                <option value="warning">Sắp hết</option>
+                <option value="outofstock">Hết hàng</option>
+            </select>
+            
+            <select id="sortBy" 
+                    class="px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[#2d9596] focus:outline-none"
+                    onchange="filterProducts()">
+                <option value="name">Sắp xếp theo tên</option>
+                <option value="qty-asc">Số lượng: Thấp đến cao</option>
+                <option value="qty-desc">Số lượng: Cao đến thấp</option>
+                <option value="date">Ngày nhập mới nhất</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+{% if products %}
+{# Enhanced Product Grid #}
+<div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {% for product in products %}
+    <div class="group bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col relative product-card"
+         data-name="{{ product.name|lower }}"
+         data-qty="{{ product.qty }}"
+         data-date="{{ product.date_added }}"
+         data-status="{% if product.qty <= 0 %}outofstock{% elif product.qty <= 3 %}warning{% else %}instock{% endif %}">
+        
+        {# Selection Checkbox for Bulk Actions #}
+        <div class="absolute top-3 left-3 z-10">
+            <input type="checkbox" 
+                   class="product-select w-4 h-4 rounded border-gray-300 text-[#2d9596] focus:ring-[#2d9596]"
+                   data-product-id="{{ product.id }}">
+        </div>
+
+        {# Enhanced Status Badge #}
+        <div class="absolute top-3 right-3 z-10">
+            {% if product.qty <= 0 %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <i class="fas fa-times-circle mr-1"></i> Hết hàng
+                </span>
+            {% elif product.qty <= 3 %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <i class="fas fa-exclamation-circle mr-1"></i> Sắp hết
+                </span>
+            {% elif product.qty <= 10 %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> Cảnh báo
+                </span>
+            {% else %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-1"></i> Còn hàng
+                </span>
+            {% endif %}
+        </div>
+
+        {# Product Content #}
+        <div class="p-6 flex flex-col flex-grow">
+            <div class="relative mb-4 group">
+                <img src="{{ product.qrcode_url if product.qrcode_url else 'https://placehold.co/200x200/E2E8F0/94A3B8?text=QR+Image' }}"
+                     alt="QR Code {{ product.name }}"
+                     class="w-full aspect-square object-contain rounded-lg border border-slate-200 shadow-sm bg-slate-50 group-hover:scale-105 transition"
+                     onerror="this.onerror=null;this.src='https://placehold.co/200x200/E2E8F0/94A3B8?text=Image+Error';" />
+                
+                {# Quick Actions Overlay #}
+                <div class="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <a href="{{ product.qrcode_url }}" target="_blank" 
+                       class="p-2 bg-white rounded-full hover:bg-[#2d9596]/10 transition-colors"
+                       title="Xem QR Code">
+                        <i class="fas fa-qrcode text-[#2d9596]"></i>
+                    </a>
+                    {% if product.product_id_internal %}
+                    <a href="#" class="p-2 bg-white rounded-full hover:bg-[#2d9596]/10 transition-colors"
+                       title="Xem chi tiết">
+                        <i class="fas fa-eye text-[#2d9596]"></i>
+                    </a>
+                    {% else %}
+                    <span class="p-2 bg-gray-200 rounded-full cursor-not-allowed"
+                          title="Không có mã sản phẩm">
+                        <i class="fas fa-eye text-gray-400"></i>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold text-slate-800 mb-2 group-hover:text-[#2d9596] transition line-clamp-2">
+                {{ product.name }}
+            </h3>
+
+            {% if product.barcode_data %}
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-slate-500 text-sm">Mã vạch:</span>
+                <span class="font-mono text-xs bg-[#2d9596]/10 text-[#2d9596] px-2 py-1 rounded">
+                    {{ product.barcode_data }}
+                </span>
+            </div>
+            {% endif %}
+
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-slate-600">Số lượng:</span>
+                <span class="font-bold {% if product.qty <= 3 %}text-red-600{% elif product.qty <= 10 %}text-amber-600{% else %}text-[#2d9596]{% endif %}">
+                    {{ product.qty }}
+                </span>
+            </div>
+
+            <div class="text-slate-400 text-sm">
+                <i class="far fa-calendar-alt mr-1"></i>
+                Cập nhật: {% if product.date_added %}{{ product.date_added|string|truncate(10, true, '') }}{% else %}N/A{% endif %}
+            </div>
+        </div>
+
+        {# Action Footer #}
+        <div class="border-t border-slate-100 p-4 bg-slate-50 rounded-b-xl">
+            <div class="flex items-center justify-between gap-4">
+                <button onclick="quickUpdateStock('{{ product.id }}')"
+                        class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#2d9596] focus:ring-offset-2 transition-colors">
+                    <i class="fas fa-pen mr-2"></i> Cập nhật số lượng
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 </div>
 
 <script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('stockManager', () => ({
-        async submitStock(action, productId, quantity) {
-            if (!quantity || quantity < 1) {
-                alert('Vui lòng nhập số lượng hợp lệ.');
-                return;
+// Quản lý checkbox selection
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.product-select');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedActions);
+    });
+});
+
+function updateSelectedActions() {
+    const selected = document.querySelectorAll('.product-select:checked');
+    const actionBar = document.getElementById('selectedActions');
+    const countSpan = document.getElementById('selectedCount');
+    
+    if (selected.length > 0) {
+        actionBar.classList.remove('hidden');
+        actionBar.classList.add('flex');
+        countSpan.textContent = `${selected.length} sản phẩm được chọn`;
+    } else {
+        actionBar.classList.add('hidden');
+        actionBar.classList.remove('flex');
+    }
+}
+
+function deleteSelectedProducts() {
+    const selected = document.querySelectorAll('.product-select:checked');
+    if (selected.length === 0) {
+        alert('Vui lòng chọn ít nhất một sản phẩm để xóa');
+        return;
+    }
+    
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selected.length} sản phẩm đã chọn?`)) {
+        return;
+    }
+    
+    const productIds = Array.from(selected).map(cb => cb.dataset.productId);
+    
+    fetch('/api/delete-products', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ product_ids: productIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Xóa các card sản phẩm khỏi DOM
+            selected.forEach(cb => {
+                const card = cb.closest('.product-card');
+                card.remove();
+            });
+            
+            // Cập nhật tổng số sản phẩm
+            const totalElement = document.querySelector('[data-stat="total-products"]');
+            if (totalElement) {
+                totalElement.textContent = data.total_products;
             }
-            try {
-                const response = await fetch('/api/update-inventory-and-log', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        scanned_data: productId,
-                        action: action,
-                        quantity: quantity
-                    })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    alert(result.message);
-                    location.reload();
-                } else {
-                    alert(result.error || 'Có lỗi xảy ra khi cập nhật tồn kho.');
-                }
-            } catch (error) {
-                alert('Lỗi kết nối đến server.');
-            }
+            
+            // Ẩn action bar
+            document.getElementById('selectedActions').classList.add('hidden');
+            
+            alert(data.message);
+            location.reload(); // Reload để cập nhật thống kê
+        } else {
+            alert('Lỗi: ' + data.error);
         }
-    }));
- });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Có lỗi xảy ra khi xóa sản phẩm');
+    });
+}
+
+function editSelectedProducts() {
+    const selected = document.querySelectorAll('.product-select:checked');
+    if (selected.length === 0) {
+        alert('Vui lòng chọn một sản phẩm để chỉnh sửa');
+        return;
+    }
+    
+    if (selected.length > 1) {
+        alert('Chỉ có thể chỉnh sửa một sản phẩm tại một thời điểm');
+        return;
+    }
+    
+    const productCard = selected[0].closest('.product-card');
+    const productId = selected[0].dataset.productId;
+    const productName = productCard.querySelector('h3').textContent.trim();
+    const productQty = productCard.dataset.qty;
+    
+    // Điền thông tin vào modal
+    document.getElementById('editProductId').value = productId;
+    document.getElementById('editName').value = productName;
+    document.getElementById('editQty').value = productQty;
+    
+    // Hiển thị modal với animation
+    const modal = document.getElementById('editModal');
+    const modalContent = modal.querySelector('.bg-white');
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // Trigger animation after a small delay
+    setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modalContent.classList.add('scale-100', 'opacity-100');
+        modalContent.classList.remove('scale-95', 'opacity-0');
+    }, 10);
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('editModal');
+    const modalContent = modal.querySelector('.bg-white');
+    
+    // Start fade out animation
+    modal.classList.remove('opacity-100');
+    modal.classList.add('opacity-0');
+    modalContent.classList.remove('scale-100', 'opacity-100');
+    modalContent.classList.add('scale-95', 'opacity-0');
+    
+    // Hide modal after animation
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+}
+
+function updateProduct(event) {
+    event.preventDefault();
+    
+    const productId = document.getElementById('editProductId').value;
+    const name = document.getElementById('editName').value;
+    const qty = parseInt(document.getElementById('editQty').value);
+    
+    if (!name || qty < 0) {
+        alert('Vui lòng nhập thông tin hợp lệ');
+        return;
+    }
+    
+    fetch(`/api/update-product/${productId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: name, qty: qty })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeEditModal();
+            location.reload(); // Reload để cập nhật giao diện
+        } else {
+            alert('Lỗi: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Có lỗi xảy ra khi cập nhật sản phẩm');
+    });
+}
+
+function filterProducts() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const stockFilter = document.getElementById('stockFilter').value;
+    const sortBy = document.getElementById('sortBy').value;
+    const cards = Array.from(document.querySelectorAll('.product-card'));
+
+    // Filter cards
+    cards.forEach(card => {
+        const name = card.dataset.name;
+        const status = card.dataset.status;
+        const matchesSearch = name.includes(searchTerm);
+        const matchesStock = stockFilter === 'all' || status === stockFilter;
+        card.style.display = matchesSearch && matchesStock ? '' : 'none';
+    });
+
+    // Sort cards
+    const sortedCards = cards.sort((a, b) => {
+        switch(sortBy) {
+            case 'name':
+                return a.dataset.name.localeCompare(b.dataset.name);
+            case 'qty-asc':
+                return parseInt(a.dataset.qty) - parseInt(b.dataset.qty);
+            case 'qty-desc':
+                return parseInt(b.dataset.qty) - parseInt(a.dataset.qty);
+            case 'date':
+                return new Date(b.dataset.date) - new Date(a.dataset.date);
+            default:
+                return 0;
+        }
+    });
+
+    const grid = document.getElementById('productGrid');
+    sortedCards.forEach(card => grid.appendChild(card));
+}
+
+function quickUpdateStock(productId) {
+    const qty = prompt('Nhập số lượng mới:');
+    if (qty !== null) {
+        // TODO: Implement AJAX call to update stock
+        alert('Chức năng đang được phát triển');
+    }
+}
+
+function exportToExcel() {
+    // TODO: Implement export functionality
+    alert('Chức năng đang được phát triển');
+}
+
+function printSelectedQR() {
+    const selected = document.querySelectorAll('.product-select:checked');
+    if (selected.length === 0) {
+        alert('Vui lòng chọn ít nhất một sản phẩm để in mã QR');
+        return;
+    }
+    // TODO: Implement print functionality
+    alert('Chức năng đang được phát triển');
+}
 </script>
+
+{% else %}
+{# Enhanced Empty State #}
+<div class="text-center py-12">
+    <div class="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto">
+        <img src="https://cdn-icons-png.flaticon.com/512/4076/4076549.png" 
+             alt="No Stock" 
+             class="w-32 h-32 mx-auto mb-6 opacity-70">
+        <h2 class="text-2xl font-bold text-slate-800 mb-2">Không có sản phẩm tồn kho</h2>
+        <p class="text-slate-600 mb-6">Bắt đầu bằng cách thêm sản phẩm đầu tiên vào kho của bạn</p>
+        <div class="flex justify-center gap-4">
+            <a href="{{ url_for('render_mobile_scan_page') }}"
+               class="inline-flex items-center bg-gradient-to-r from-[#1a4d2e] to-[#2d9596] text-white font-semibold px-6 py-3 rounded-lg shadow hover:from-[#164226] hover:to-[#278485] transition-all duration-200">
+                <i class="fas fa-plus-circle mr-2"></i> Nhập sản phẩm đầu tiên
+            </a>
+            <a href="{{ url_for('qr_management_detail', category_slug='thuc-pham') }}"
+               class="inline-flex items-center bg-white text-slate-700 font-semibold px-6 py-3 rounded-lg shadow border border-slate-200 hover:bg-slate-50 transition-all duration-200">
+                <i class="fas fa-cogs mr-2"></i> Quản lý Sản phẩm
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

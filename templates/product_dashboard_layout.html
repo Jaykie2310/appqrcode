@@ -12,6 +12,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> {# Changed font to Inter #}
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
     <style>
@@ -282,42 +283,77 @@
 
         /* Mobile nav improvements */
         .mobile-bottom-nav {
-            background-color: var(--surface-color);
-            border-top: 1px solid rgba(26, 77, 46, 0.1);
-            box-shadow: 0 -2px 10px rgba(26, 77, 46, 0.1);
-            padding: 0.5rem 0;
+            background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255,255,255,0.95) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: var(--text-secondary-on-light);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1), 0 -1px 0 rgba(0,0,0,0.05);
+            padding: 8px 0;
+            height: 75px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-around;
+            align-items: stretch;
+            border-top: 1px solid rgba(var(--border-color), 0.3);
+            border-radius: 16px 16px 0 0;
+            margin: 0 8px;
         }
 
         .mobile-bottom-nav .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            color: var(--text-gray-500);
+            text-decoration: none;
+            padding: 8px 4px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            background: none;
+            border: none;
+            cursor: pointer;
             position: relative;
+            border-radius: 16px;
+            margin: 0 4px;
+            min-height: 56px;
+        }
+
+        .mobile-bottom-nav .nav-item:active {
+            transform: scale(0.95);
+            background-color: rgba(var(--secondary-brand-color-rgb), 0.1);
+        }
+
+        .mobile-bottom-nav .nav-item i {
+            font-size: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-bottom-nav .nav-item .nav-text {
+            font-size: 11px;
+            line-height: 1.2;
+            font-weight: 500;
             transition: all 0.3s ease;
         }
 
         .mobile-bottom-nav .nav-item.active {
-            color: var(--sidebar-active-bg-color);
+            color: var(--secondary-brand-color);
+            background-color: rgba(var(--secondary-brand-color-rgb), 0.1);
         }
 
-        .mobile-bottom-nav .nav-item.nav-item-main .icon-wrapper {
-            background-color: var(--sidebar-active-bg-color);
-            box-shadow: 0 -2px 12px rgba(45, 149, 150, 0.3);
-            border-radius: 50%;
-            padding: 1rem;
-            transform: translateY(-40%);
-            transition: transform 0.3s ease;
-        }
-
-        .mobile-bottom-nav .nav-item.nav-item-main:active .icon-wrapper {
-            transform: translateY(-30%);
-        }
-
-        .mobile-bottom-nav .nav-text {
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
-            color: var(--sidebar-bg-color);
+        .mobile-bottom-nav .nav-item.active i {
+            transform: translateY(-2px);
+            color: var(--secondary-brand-color);
         }
 
         .mobile-bottom-nav .nav-item.active .nav-text {
             font-weight: 600;
+            color: var(--secondary-brand-color);
         }
     </style>
     <title>{% block page_specific_title %}QR Manager - Dashboard{% endblock %}</title>
@@ -375,6 +411,12 @@
                             <span>Tồn kho</span>
                         </a>
                     </li>
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_xuat_kho_quet_page' else '' }}">
+                        <a href="{{ url_for('pd_xuat_kho_quet_page') }}">
+                            <i class="fas fa-box-open"></i>
+                            <span>Xuất kho</span>
+                        </a>
+                    </li>
                     <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_bao_cao_xem' else '' }}">
                         <a href="{{ url_for('pd_bao_cao_xem') }}">
                             <i class="fas fa-chart-pie"></i>
@@ -427,10 +469,14 @@
                 <i class="fas fa-boxes-stacked"></i>
                 <span class="nav-text">Tồn kho</span>
             </a>
+            <a href="{{ url_for('pd_xuat_kho_quet_page') }}" class="nav-item {{ 'active' if request.endpoint == 'pd_xuat_kho_quet_page' else '' }}">
+                <i class="fas fa-box-open"></i>
+                <span class="nav-text">Xuất kho</span>
+            </a>
             <a href="{{ url_for('render_mobile_scan_page') }}" class="nav-item nav-item-main {{ 'active' if request.endpoint == 'render_mobile_scan_page' else '' }}">
                 <div class="icon-wrapper">
                     <i class="fas fa-qrcode"></i>
-                    <span class="nav-text">Quét Mã</span>
+                    <span class="nav-text">Nhập kho</span>
                 </div>
             </a>
             <a href="{{ url_for('pd_bao_cao_xem') }}" class="nav-item {{ 'active' if request.endpoint == 'pd_bao_cao_xem' else '' }}">

@@ -10,25 +10,22 @@ import datetime
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
-# Giả sử bạn có thư viện pyzbar hoặc tương tự để decode barcode từ ảnh
-# from pyzbar.pyzbar import decode # Ví dụ, bạn cần cài đặt: pip install pyzbar
-from PIL import Image  # Pillow đã có sẵn nếu bạn dùng ImageCaptcha
+from PIL import Image
 import io
 
 
-# Placeholder cho hàm decode, bạn cần thay thế bằng thư viện thực tế
 def decode(image):
     try:
         from pyzbar.pyzbar import decode as pyzbar_decode
         if image.mode != 'L':
             image = image.convert('L')
-        print(f"Decoding image. Mode: {image.mode}, Size: {image.size}")
+        # print(f"Decoding image. Mode: {image.mode}, Size: {image.size}")
         decoded_objects = pyzbar_decode(image)
         if decoded_objects:
             return decoded_objects
         return []
     except Exception as e:
-        print(f"Lỗi khi decode mã vạch: {str(e)}")
+        # print(f"Lỗi khi decode mã vạch: {str(e)}")
         return []
 
 
@@ -57,7 +54,6 @@ def process_barcode_image():
         return jsonify({'success': False, 'message': 'Không có file nào được chọn'}), 400
 
     try:
-        # Xử lý ảnh và decode mã vạch
         image = Image.open(file.stream)
         decoded_objects = decode(image)
 
@@ -67,7 +63,6 @@ def process_barcode_image():
         barcode = decoded_objects[0].data.decode('utf-8')
         app.logger.info(f"Đã giải mã được mã vạch: {barcode}")
 
-        # Gọi API Open Food Facts
         url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
 
         try:
@@ -121,81 +116,132 @@ def update_inventory():
     if not data:
         return jsonify({'success': False, 'message': 'Không có dữ liệu được gửi'}), 400
 
+    barcode = data.get('barcode')
+    product_name_form = data.get('name')
+    quantity_form = data.get('quantity')
+    manufacturer_form = data.get('manufacturer')
+    origin_form = data.get('origin')
+    volume_form = data.get('volume')
+    scan_date_form = data.get('scan_date', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+    if not product_name_form or not quantity_form or quantity_form <= 0:
+        return jsonify({'success': False, 'message': 'Tên sản phẩm và số lượng hợp lệ là bắt buộc.'}), 400
+
+    conn = None
     try:
         conn = get_db_connection()
         c = conn.cursor()
 
-        # Tạo mã QR chứa thông tin sản phẩm
-        qr_data = {
-            'name': data['name'],
-            'manufacturer': data['manufacturer'],
-            'origin': data['origin'],
-            'volume': data['volume'],
-            'nutrition_data': data['nutrition_data'],
-            'scan_date': data['scan_date']
-        }
+        existing_product = None
+        if barcode:
+            c.execute(
+                "SELECT id, name, qty, product_qr_code_path, product_id_internal, manufacturer, origin, volume_weight FROM products WHERE barcode_data = ?",
+                (barcode,))
+            existing_product = c.fetchone()
 
-        # Tạo thư mục lưu mã QR nếu chưa tồn tại
-        qr_folder = os.path.join('static', 'qrcodes')
-        if not os.path.exists(qr_folder):
-            os.makedirs(qr_folder)
+        product_id_for_op = None
+        final_qr_path_for_db = None
+        final_product_name = product_name_form
+        message = ""
 
-        # Tạo tên file QR duy nhất
-        qr_filename = f"qr_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        qr_path = os.path.join(qr_folder, qr_filename)
+        if existing_product:
+            product_id_for_op = existing_product['id']
+            final_product_name = existing_product['name']
+            new_qty = existing_product['qty'] + quantity_form
+            product_id_internal = existing_product['product_id_internal']
+            final_qr_path_for_db = existing_product['product_qr_code_path']
 
-        # Tạo mã QR
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr.add_data(json.dumps(qr_data))
-        qr.make(fit=True)
-        qr_img = qr.make_image(fill_color="black", back_color="white")
-        qr_img.save(qr_path)
+            if not product_id_internal:
+                product_id_internal = generate_internal_product_id()
 
-        # Thêm sản phẩm vào bảng products
-        c.execute("""
-            INSERT INTO products (
-                name, manufacturer, origin, volume_weight, date_added,
-                qty, product_qr_code_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            data['name'],
-            data['manufacturer'],
-            data['origin'],
-            data['volume'],
-            data['scan_date'],
-            data['quantity'],
-            os.path.join('qrcodes', qr_filename)
-        ))
+            if not final_qr_path_for_db:
+                qr_content_data = url_for('view_product_details_by_qr', product_internal_id=product_id_internal,
+                                          _external=True)
+                qr_folder_path = os.path.join('static', 'product_qrcodes')
+                if not os.path.exists(qr_folder_path):
+                    os.makedirs(qr_folder_path)
+                qr_filename = f"product_{product_id_internal}.png"
+                qr_file_path_on_disk = os.path.join(qr_folder_path, qr_filename)
+                qr_gen = qrcode.QRCode(version=1, box_size=10, border=5)
+                qr_gen.add_data(qr_content_data)
+                qr_gen.make(fit=True)
+                img = qr_gen.make_image(fill_color="black", back_color="white")
+                img.save(qr_file_path_on_disk)
+                final_qr_path_for_db = os.path.join('product_qrcodes', qr_filename).replace("\\", "/")
 
-        # Thêm log hoạt động
+            c.execute("""
+                UPDATE products 
+                SET qty = ?, name = ?, manufacturer = ?, origin = ?, volume_weight = ?,
+                    product_id_internal = ?, product_qr_code_path = ?
+                WHERE id = ?
+            """, (new_qty,
+                  product_name_form or existing_product['name'],
+                  manufacturer_form or existing_product['manufacturer'],
+                  origin_form or existing_product['origin'],
+                  volume_form or existing_product['volume_weight'],
+                  product_id_internal,
+                  final_qr_path_for_db,
+                  product_id_for_op))
+            message = f"Đã cập nhật số lượng cho sản phẩm '{final_product_name}'."
+            action_type_log = 'nhap_kho_cap_nhat'
+        else:
+            product_id_internal = generate_internal_product_id()
+            qr_content_data = url_for('view_product_details_by_qr', product_internal_id=product_id_internal,
+                                      _external=True)
+            qr_folder_path = os.path.join('static', 'product_qrcodes')
+            if not os.path.exists(qr_folder_path):
+                os.makedirs(qr_folder_path)
+            qr_filename = f"product_{product_id_internal}.png"
+            qr_file_path_on_disk = os.path.join(qr_folder_path, qr_filename)
+            qr_gen = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr_gen.add_data(qr_content_data)
+            qr_gen.make(fit=True)
+            img = qr_gen.make_image(fill_color="black", back_color="white")
+            img.save(qr_file_path_on_disk)
+            final_qr_path_for_db = os.path.join('product_qrcodes', qr_filename).replace("\\", "/")
+
+            c.execute("""
+                INSERT INTO products (
+                    name, barcode_data, product_id_internal, qty, product_qr_code_path,
+                    manufacturer, origin, volume_weight, date_added
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                product_name_form, barcode, product_id_internal, quantity_form, final_qr_path_for_db,
+                manufacturer_form, origin_form, volume_form, scan_date_form
+            ))
+            product_id_for_op = c.lastrowid
+            message = f"Sản phẩm mới '{product_name_form}' đã được thêm vào kho."
+            action_type_log = 'nhap_kho_moi'
+
         c.execute("""
             INSERT INTO activity_log (
-                user_email, action_type, product_id, quantity, action_date
-            ) VALUES (?, ?, ?, ?, ?)
+                user_email, action_type, product_id, product_name, quantity, action_date, barcode_data
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             session['username'],
-            'nhap_kho',
-            c.lastrowid,  # ID của sản phẩm vừa thêm
-            data['quantity'],
-            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            action_type_log,
+            product_id_for_op,
+            final_product_name,
+            quantity_form,
+            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            barcode
         ))
-
         conn.commit()
-
+        qr_url_to_return = url_for('static', filename=final_qr_path_for_db) if final_qr_path_for_db else None
         return jsonify({
             'success': True,
-            'message': 'Cập nhật kho thành công',
-            'qr_code_url': url_for('static', filename=os.path.join('qrcodes', qr_filename))
+            'message': message,
+            'qr_code_url': qr_url_to_return,
+            'product_id': product_id_for_op,
+            'product_name': final_product_name
         })
-
     except Exception as e:
-        app.logger.error(f"Lỗi khi cập nhật kho: {e}")
-        if 'conn' in locals():
+        app.logger.error(f"Lỗi khi cập nhật kho (/api/update-inventory): {e}")
+        if conn:
             conn.rollback()
-            conn.close()
         return jsonify({'success': False, 'message': f'Lỗi khi cập nhật kho: {str(e)}'}), 500
     finally:
-        if 'conn' in locals():
+        if conn:
             conn.close()
 
 
@@ -242,8 +288,6 @@ def scan_product_openfoodfacts():
                 'stores': product_data.get('stores', 'Không có thông tin'),
                 'scan_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
-
-            # Lưu thông tin vào CSDL
             try:
                 conn = get_db_connection()
                 c = conn.cursor()
@@ -266,12 +310,9 @@ def scan_product_openfoodfacts():
                     product_info['origin'],
                     product_info['volume'],
                     product_info['scan_date'],
-                    None  # QR code path sẽ được cập nhật sau
+                    None
                 ))
-
                 product_id = c.lastrowid
-
-                # Tạo QR code cho sản phẩm
                 qr_data = {
                     'product_id': product_id,
                     'name': product_info['name'],
@@ -280,31 +321,20 @@ def scan_product_openfoodfacts():
                     'origin': product_info['origin'],
                     'volume': product_info['volume']
                 }
-
                 qr_folder_path = os.path.join(os.path.dirname(__file__), 'static', 'product_qrcodes')
                 if not os.path.exists(qr_folder_path):
                     os.makedirs(qr_folder_path)
-
                 qr_filename = f"product_{product_id}.png"
                 qr_file_path = os.path.join(qr_folder_path, qr_filename)
-
-                # Tạo QR code
                 qr = qrcode.QRCode(version=1, box_size=10, border=5)
                 qr.add_data(json.dumps(qr_data))
                 qr.make(fit=True)
                 qr_img = qr.make_image(fill_color="black", back_color="white")
                 qr_img.save(qr_file_path)
-
-                # Cập nhật đường dẫn QR trong CSDL
                 qr_path_for_db = os.path.join('product_qrcodes', qr_filename).replace("\\", "/")
-                c.execute("UPDATE products SET product_qr_code_path = ? WHERE id = ?",
-                          (qr_path_for_db, product_id))
-
+                c.execute("UPDATE products SET product_qr_code_path = ? WHERE id = ?", (qr_path_for_db, product_id))
                 conn.commit()
-
-                # Thêm đường dẫn QR vào thông tin trả về
                 product_info['qr_code_path'] = qr_path_for_db
-
             except Exception as db_error:
                 app.logger.error(f"Database error: {db_error}")
                 if 'conn' in locals():
@@ -314,13 +344,11 @@ def scan_product_openfoodfacts():
             finally:
                 if 'conn' in locals():
                     conn.close()
-
             app.logger.info(f"API: OpenFoodFacts - Product found and saved: {product_info.get('name')}")
             return jsonify({'success': True, 'product': product_info})
         else:
             app.logger.warning(f"API: OpenFoodFacts - Product not found or status not 1 for barcode: {barcode}")
             return jsonify({'success': False, 'message': 'Không tìm thấy sản phẩm trên Open Food Facts'})
-
     except requests.exceptions.RequestException as e:
         app.logger.error(f"API: OpenFoodFacts - Request error: {e}")
         return jsonify({'success': False, 'message': f'Lỗi khi gọi API Open Food Facts: {e}'}), 500
@@ -338,28 +366,51 @@ def add_security_headers(response):
 @app.route("/scan_page_test")
 def scan_page():
     if 'username' not in session:
-        session['username'] = 'test_user_email@example.com'  # Giả sử email cho user test
+        session['username'] = 'test_user_email@example.com'
     response = make_response(render_template("mobile_scan_screen.html"))
     return response
 
+@app.route("/inventory_test")
+def inventory_test():
+    if 'username' not in session:
+        session['username'] = 'test_user_email@example.com'
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT id, name, price, qty, category, product_id_internal, 
+               date_added, expiry_date, product_qr_code_path
+        FROM products ORDER BY date_added DESC, name
+    """)
+    products_list_raw = c.fetchall()
+    conn.close()
+    products_for_template = []
+    for row in products_list_raw:
+        product_dict = dict(row)
+        if product_dict.get('product_qr_code_path'):
+            product_dict['qrcode_url'] = url_for('static', filename=product_dict['product_qr_code_path'])
+        else:
+            product_dict['qrcode_url'] = url_for('static', filename='placeholder_qr.png')
+        products_for_template.append(product_dict)
+    return render_template(
+        'product_dashboard_content_tonkho.html',
+        products=products_for_template,
+        mobile_nav_type='main_dashboard_nav'
+    )
 
-app.secret_key = 'your_very_secret_and_complex_key_here_CHANGE_ME'  # Đảm bảo bạn thay đổi key này
 
-# Kết nối CSDL
+app.secret_key = 'your_very_secret_and_complex_key_here_CHANGE_ME'
 DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'sales.db')
 
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row  # Giúp truy cập cột bằng tên
+    conn.row_factory = sqlite3.Row
     return conn
 
 
-# Khởi tạo bảng (chạy một lần hoặc kiểm tra tồn tại)
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-    # Bảng users: username sẽ lưu email, email cũng lưu email. Cả hai đều UNIQUE.
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -370,7 +421,6 @@ def init_db():
         is_verified BOOLEAN DEFAULT 0
     )
     """)
-    # Các bảng khác giữ nguyên
     c.execute("""
     CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -440,7 +490,7 @@ def init_db():
     conn.close()
 
 
-init_db()  # Gọi hàm khởi tạo DB
+init_db()
 
 
 @app.route('/captcha')
@@ -460,30 +510,25 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
     error = None
-    email_value = ''  # Sẽ lưu email người dùng nhập để điền lại vào form nếu lỗi
-
-    if 'username' in session:  # 'username' trong session giờ lưu email
+    email_value = ''
+    if 'username' in session:
         return redirect(url_for('product_dashboard_overview'))
-
     if request.method == 'POST':
         email_input = request.form.get('email', '').strip()
         password = request.form.get('password', '')
-        email_value = email_input  # Giữ lại email đã nhập
-
+        email_value = email_input
         if not email_input or not password:
             error = 'Vui lòng nhập email và mật khẩu.'
         else:
             conn = get_db_connection()
             c = conn.cursor()
-            # Tìm người dùng bằng email
             c.execute("SELECT id, username, password, is_verified, email FROM users WHERE email=?", (email_input,))
             user_data = c.fetchone()
             conn.close()
-
             if user_data and check_password_hash(user_data['password'], password):
-                if user_data['is_verified'] == 1:  # Hoặc True nếu bạn lưu là boolean
-                    session['username'] = user_data['email']  # Lưu email vào session['username']
-                    session['user_id'] = user_data['id']  # Lưu user_id nếu cần
+                if user_data['is_verified'] == 1:
+                    session['username'] = user_data['email']
+                    session['user_id'] = user_data['id']
                     flash('Đăng nhập thành công!', 'success')
                     return redirect(url_for('product_dashboard_overview'))
                 else:
@@ -500,10 +545,8 @@ def generate_otp(length=6):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     error = ''
-    # Giữ lại giá trị form để điền lại nếu có lỗi, bỏ username vì không dùng trực tiếp từ form này
     form_data = {'email': '', 'phone': ''}
     if request.method == 'POST':
-        # Lấy dữ liệu từ form
         email_from_form = request.form.get('email', '').strip()
         phone_from_form = request.form.get('phone', '').strip()
         password_from_form = request.form.get('password', '')
@@ -512,14 +555,10 @@ def register():
         captcha_session = session.get('captcha_code', '')
         first_name = request.form.get('firstName', '').strip()
         last_name = request.form.get('lastName', '').strip()
-
-        # Cập nhật form_data để điền lại nếu lỗi
         form_data['email'] = email_from_form
         form_data['phone'] = phone_from_form
         form_data['firstName'] = first_name
         form_data['lastName'] = last_name
-
-        # Validate dữ liệu
         if not email_from_form or not password_from_form or not confirm_password or not captcha_input or not first_name or not last_name:
             error = 'Vui lòng điền đầy đủ thông tin.'
         elif password_from_form != confirm_password:
@@ -534,36 +573,28 @@ def register():
             error = 'Mã captcha không đúng.'
         elif not re.match(r"[^@]+@[^@]+\.[^@]+", email_from_form):
             error = 'Địa chỉ email không hợp lệ.'
-
         if not error:
             conn = get_db_connection()
             c = conn.cursor()
-            # Kiểm tra xem email đã tồn tại chưa
             c.execute("SELECT id FROM users WHERE email=?", (email_from_form,))
             existing_user = c.fetchone()
-
             if existing_user:
                 error = 'Email này đã được đăng ký.'
                 conn.close()
             else:
                 try:
                     hashed_password = generate_password_hash(password_from_form)
-                    # username trong DB sẽ lưu email
                     username_for_db = email_from_form
-
                     try:
                         c.execute(
                             "INSERT INTO users (username, email, phone, password, is_verified) VALUES (?, ?, ?, ?, ?)",
                             (username_for_db, email_from_form, phone_from_form, hashed_password, 1)
-                            # is_verified = 1 (tự động xác thực)
                         )
                         conn.commit()
-                        user_id = c.lastrowid  # Lấy id của user vừa tạo
+                        user_id = c.lastrowid
                         conn.close()
-
-                        session['username'] = email_from_form  # Lưu email vào session
+                        session['username'] = email_from_form
                         session['user_id'] = user_id
-
                         flash('Đăng ký thành công! Bạn đã được đăng nhập.', 'success')
                         return redirect(url_for('product_dashboard_overview'))
                     except Exception as e:
@@ -571,24 +602,17 @@ def register():
                         if 'conn' in locals():
                             conn.rollback()
                             conn.close()
-
-                except sqlite3.IntegrityError:  # Có thể xảy ra nếu có ràng buộc UNIQUE khác bị vi phạm (dù đã check email)
+                except sqlite3.IntegrityError:
                     error = 'Đã có lỗi xảy ra với cơ sở dữ liệu (ví dụ: email đã tồn tại - kiểm tra lại). Vui lòng thử lại.'
-                    conn.rollback()  # Rollback nếu có lỗi
+                    conn.rollback()
                     conn.close()
                 except Exception as e:
                     error = f'Lỗi không xác định trong quá trình đăng ký: {str(e)}'
                     app.logger.error(f"Registration error: {e}")
                     conn.rollback()
                     conn.close()
-        # Nếu có lỗi ở trên, sẽ không vào đây, nhưng nếu có lỗi từ DB thì cần đóng kết nối
-        # if 'conn' in locals() and conn: # Đảm bảo conn tồn tại trước khi đóng
-        #     conn.close()
-
-    # Tạo captcha mới cho mỗi lần tải lại trang hoặc sau khi submit
     new_captcha_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
     session['captcha_code'] = new_captcha_code
-
     return render_template('register.html', error=error, form_data=form_data)
 
 
@@ -621,14 +645,11 @@ def qr_generator_tool():
     return render_template('qr_tool.html', qr_image_path=qr_image_path_display, data_generated=data_generated)
 
 
-# ... (Các route khác giữ nguyên, đảm bảo kiểm tra 'username' in session nếu cần bảo vệ) ...
-# Ví dụ:
 @app.route('/quan-ly-san-pham/')
 @app.route('/quan-ly-san-pham/tong-quan')
 def product_dashboard_overview():
-    if 'username' not in session:  # 'username' trong session là email
+    if 'username' not in session:
         return redirect(url_for('login_page'))
-    # Lấy thông tin người dùng từ session nếu cần hiển thị
     current_user_email = session.get('username')
     return render_template(
         'product_dashboard_content_tongquan.html',
@@ -665,15 +686,12 @@ CATEGORY_DETAILS = {
 def manage_category_placeholder(category_slug):
     if 'username' not in session:
         return redirect(url_for('login_page'))
-
     category_info = CATEGORY_DETAILS.get(category_slug)
-
     if not category_info:
         flash("Danh mục không tồn tại.", "danger")
         return redirect(url_for('product_dashboard_overview'))
-
     return render_template(
-        'category_management_page.html',  # Bạn cần tạo template này
+        'category_management_page.html',
         category_slug=category_slug,
         category_display_name=category_info["display_name"],
         category_bg_image=category_info["image_url"],
@@ -683,7 +701,6 @@ def manage_category_placeholder(category_slug):
     )
 
 
-# Routes cho Quản lý QR
 @app.route('/quan-ly-qr')
 def qr_management_overview():
     if 'username' not in session:
@@ -699,12 +716,10 @@ def qr_management_overview():
 def qr_management_detail(category_slug):
     if 'username' not in session:
         return redirect(url_for('login_page'))
-
     category_info = CATEGORY_DETAILS.get(category_slug)
     if not category_info:
         flash("Danh mục không tồn tại.", "danger")
         return redirect(url_for('product_dashboard_overview'))
-
     return render_template(
         'qr_management_detail.html',
         category_slug=category_slug,
@@ -735,10 +750,9 @@ def category_detail_with_nav(category_slug):
         flash("Danh mục không tồn tại.", "danger")
         return redirect(url_for('product_dashboard_overview'))
     return render_template(
-        'category_detail_with_nav.html',  # Bạn cần tạo template này
+        'category_detail_with_nav.html',
         category_slug=category_slug,
         category_display_name=category_info["display_name"],
-        # ... các thông tin khác ...
         mobile_nav_type='category_detail_nav'
     )
 
@@ -790,14 +804,23 @@ def pd_ton_kho_quan_ly():
     conn = get_db_connection()
     c = conn.cursor()
     c.execute("""
-        SELECT id, name, price, qty, category, product_id_internal, date_added, expiry_date, product_qr_code_path
+        SELECT id, name, price, qty, category, product_id_internal, 
+               date_added, expiry_date, product_qr_code_path
         FROM products ORDER BY date_added DESC, name
     """)
-    products_list = [dict(row) for row in c.fetchall()]  # Chuyển đổi sang list of dicts
+    products_list_raw = c.fetchall()
     conn.close()
+    products_for_template = []
+    for row in products_list_raw:
+        product_dict = dict(row)
+        if product_dict.get('product_qr_code_path'):
+            product_dict['qrcode_url'] = url_for('static', filename=product_dict['product_qr_code_path'])
+        else:
+            product_dict['qrcode_url'] = url_for('static', filename='placeholder_qr.png')
+        products_for_template.append(product_dict)
     return render_template(
         'product_dashboard_content_tonkho.html',
-        products=products_list,
+        products=products_for_template,
         mobile_nav_type='main_dashboard_nav'
     )
 
@@ -816,14 +839,12 @@ def pd_bao_cao_xem():
 def pd_user_profile():
     if 'username' not in session: return redirect(url_for('login_page'))
     user_email = session.get('username')
-    # Lấy thêm thông tin user từ DB nếu cần (ví dụ: phone)
     conn = get_db_connection()
     c = conn.cursor()
     c.execute("SELECT email, phone FROM users WHERE email = ?", (user_email,))
     user_info_db = c.fetchone()
     conn.close()
     user_info_display = {'email': user_email, 'phone': user_info_db['phone'] if user_info_db else 'N/A'}
-
     return render_template('product_dashboard_content_user_profile.html', user_info=user_info_display)
 
 
@@ -831,16 +852,12 @@ def pd_user_profile():
 def pd_nhap_san_pham_moi():
     if 'username' not in session: return redirect(url_for('login_page'))
     if request.method == 'POST':
-        # Xử lý logic thêm sản phẩm mới
-        # ...
         product_name = request.form.get('product_name')
         if product_name:
-            # ... (logic tạo QR, lưu DB)
             flash(f"Sản phẩm '{product_name}' đã được thêm (logic mẫu).", "success")
             return redirect(url_for('pd_ton_kho_quan_ly'))
         else:
             flash("Tên sản phẩm không được để trống.", "warning")
-
     return render_template('product_dashboard_content_nhap_sanpham.html')
 
 
@@ -852,7 +869,7 @@ def pd_nhap_kho_quet_page():
     nav_type_to_use = 'category_context_nav' if context_slug_from_url else 'main_dashboard_nav'
     return render_template(
         'product_dashboard_content_scan_and_input.html',
-        contextual_sidebar='category_management',  # Cần xem xét lại biến này
+        contextual_sidebar='category_management',
         mobile_nav_type=nav_type_to_use,
         category_slug=context_slug_from_url
     )
@@ -862,20 +879,17 @@ def pd_nhap_kho_quet_page():
 def pd_xuat_kho_quet_page():
     if 'username' not in session:
         return redirect(url_for('login_page'))
-    return render_template('product_dashboard_content_xuatkho_scan.html')
+    return render_template('product_dashboard_content_xuatkho.html')
 
 
 @app.route('/api/get-product-info-from-scan', methods=['POST'])
 def get_product_info_from_scan():
     if 'username' not in session:
         return jsonify({'error': 'Chưa đăng nhập hoặc phiên hết hạn'}), 401
-
     data = request.get_json()
     scanned_data = data.get('scanned_data')
-
     if not scanned_data:
         return jsonify({'error': 'Không nhận được dữ liệu mã quét'}), 400
-
     app.logger.info(f"API: Yêu cầu thông tin sản phẩm cho mã quét: {scanned_data}")
     conn = get_db_connection()
     c = conn.cursor()
@@ -886,15 +900,13 @@ def get_product_info_from_scan():
     """, (scanned_data, scanned_data))
     product_row = c.fetchone()
     conn.close()
-
     if product_row:
-        product_details = dict(product_row)  # Chuyển sqlite3.Row thành dict
-        if product_details.get('expiry_date'):  # Định dạng lại ngày nếu có
+        product_details = dict(product_row)
+        if product_details.get('expiry_date'):
             product_details['expiry_date'] = datetime.datetime.strptime(product_details['expiry_date'],
                                                                         '%Y-%m-%d %H:%M:%S').strftime(
                 '%Y-%m-%d') if isinstance(product_details['expiry_date'], str) else product_details[
                 'expiry_date'].strftime('%Y-%m-%d')
-
         app.logger.info(f"API: Sản phẩm được tìm thấy: {product_details}")
         return jsonify(product_details), 200
     else:
@@ -906,133 +918,70 @@ def get_product_info_from_scan():
 def update_inventory_and_log():
     if 'username' not in session:
         return jsonify({'error': 'Chưa đăng nhập'}), 401
-    if 'user_id' not in session:  # Cần user_id để log
-        return jsonify({'error': 'Thông tin user_id không có trong session'}), 401
-
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Không có dữ liệu được gửi'}), 400
+        
+    product_id = data.get('product_id')
+    quantity = data.get('quantity')
+    action = data.get('action')
+    
+    if not product_id or not quantity or not action:
+        return jsonify({'error': 'Thiếu thông tin cần thiết'}), 400
+        
     try:
-        data = request.get_json()
-        app.logger.info(f"API: Update inventory data: {data}")
-
-        scanned_data = data.get('scanned_data')  # Đây có thể là barcode hoặc product_id_internal
-        name_from_api = data.get('product_name')
-        manufacturer_from_api = data.get('manufacturer')
-        origin_from_api = data.get('origin')
-        volume_from_api = data.get('volume')
-        action = data.get('action')  # 'nhap' hoặc 'xuat'
-        quantity = int(data.get('quantity', 0))
-
-        if not scanned_data or not action or quantity <= 0:
-            return jsonify({'error': 'Dữ liệu không hợp lệ (thiếu mã quét, hành động hoặc số lượng <=0)'}), 400
-
-        user_id_from_session = session['user_id']
-        log_message = ""
-        product_id_for_log = None
-        product_name_for_log = name_from_api  # Mặc định là tên từ API (nếu là sản phẩm mới)
-
         conn = get_db_connection()
         c = conn.cursor()
 
+        # Kiểm tra xem sản phẩm có tồn tại không
+        c.execute('SELECT id, name, qty, product_qr_code_path FROM products WHERE product_id_internal = ?', (product_id,))
+        product = c.fetchone()
+
+        if not product:
+            return jsonify({'error': 'Sản phẩm không tồn tại'}), 404
+
+        # Cập nhật số lượng tồn kho
         if action == 'nhap':
-            # Kiểm tra xem sản phẩm (dựa trên barcode) đã có trong DB chưa
-            c.execute(
-                "SELECT id, name, qty, product_id_internal FROM products WHERE barcode_data = ?",
-                (scanned_data,))
-            product_in_db = c.fetchone()
-
-            if product_in_db:  # Sản phẩm đã tồn tại, cập nhật số lượng
-                db_product_id = product_in_db['id']
-                db_product_name = product_in_db['name']
-                new_qty = product_in_db['qty'] + quantity
-                c.execute("UPDATE products SET qty = ? WHERE id = ?", (new_qty, db_product_id))
-                log_message = f"Đã nhập thêm {quantity} cho sản phẩm '{db_product_name}'. Tồn kho mới: {new_qty}."
-                product_id_for_log = db_product_id
-                product_name_for_log = db_product_name
-                app.logger.info(
-                    f"Stocked in {quantity} for existing product ID {db_product_id} with barcode {scanned_data}")
-            else:  # Sản phẩm mới, thêm vào DB
-                internal_id = generate_internal_product_id()
-                # Tạo QR code cho product_id_internal (nếu cần)
-                qr_data_internal = url_for('view_product_details_by_qr', product_internal_id=internal_id,
-                                           _external=True)
-                qr_folder_path = os.path.join(os.path.dirname(__file__), 'static', 'product_qrcodes')
-                if not os.path.exists(qr_folder_path): os.makedirs(qr_folder_path)
-                qr_filename = f"product_{internal_id}.png"
-                qr_file_path_on_disk = os.path.join(qr_folder_path, qr_filename)
-                product_qr_code_path_for_db = None
-                try:
-                    qr_img = qrcode.make(qr_data_internal)
-                    qr_img.save(qr_file_path_on_disk)
-                    product_qr_code_path_for_db = os.path.join('product_qrcodes', qr_filename).replace("\\",
-                                                                                                       "/")  # Đảm bảo dùng /
-                except Exception as e_qr:
-                    app.logger.error(f"Error generating QR for new product: {e_qr}")
-
-                c.execute("""
-                    INSERT INTO products (name, barcode_data, product_id_internal, qty, product_qr_code_path,
-                                          manufacturer, origin, volume_weight, category)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (name_from_api or f"SP_{scanned_data}", scanned_data, internal_id, quantity,
-                      product_qr_code_path_for_db, manufacturer_from_api, origin_from_api, volume_from_api,
-                      data.get('category_slug')))  # Thêm category nếu có
-
-                db_product_id = c.lastrowid
-                product_id_for_log = db_product_id
-                product_name_for_log = name_from_api or f"SP_{scanned_data}"
-                log_message = f"Đã tạo sản phẩm mới '{product_name_for_log}' và nhập {quantity} đơn vị."
-                app.logger.info(
-                    f"Created new product '{product_name_for_log}' ID {db_product_id} with barcode {scanned_data}, qty {quantity}")
-
+            new_qty = product['qty'] + quantity
         elif action == 'xuat':
-            # Khi xuất, scanned_data có thể là product_id_internal (từ QR của hệ thống) hoặc barcode_data (từ barcode sản phẩm)
-            c.execute("SELECT id, name, qty FROM products WHERE product_id_internal = ? OR barcode_data = ?",
-                      (scanned_data, scanned_data))
-            product_in_db = c.fetchone()
-
-            if not product_in_db:
-                conn.close()
-                return jsonify({'error': 'Sản phẩm không tồn tại trong kho để xuất.'}), 404
-
-            db_product_id = product_in_db['id']
-            db_product_name = product_in_db['name']
-            current_qty = product_in_db['qty']
-            product_id_for_log = db_product_id
-            product_name_for_log = db_product_name
-
-            if current_qty < quantity:
-                conn.close()
-                return jsonify({'error': f"Không đủ số lượng '{db_product_name}' để xuất. Tồn kho: {current_qty}"}), 400
-
-            c.execute("UPDATE products SET qty = qty - ? WHERE id = ?", (quantity, db_product_id))
-            log_message = f"Đã xuất {quantity} sản phẩm '{db_product_name}'."
-            app.logger.info(f"Stocked out {quantity} for product ID {db_product_id} with identifier {scanned_data}")
-
+            if product['qty'] < quantity:
+                return jsonify({'error': 'Số lượng tồn kho không đủ'}), 400
+            new_qty = product['qty'] - quantity
         else:
-            conn.close()
             return jsonify({'error': 'Hành động không hợp lệ'}), 400
 
-        # Ghi log sau khi hành động nhập/xuất thành công
-        c.execute("""
-            INSERT INTO scan_log (scanned_data, product_id, product_name_at_scan, user_id, action_type, quantity_changed)
+        # Cập nhật số lượng tồn kho
+        c.execute('UPDATE products SET qty = ? WHERE id = ?', (new_qty, product['id']))
+
+        # Ghi log
+        c.execute('''
+            INSERT INTO activity_log (user_email, action_type, product_id, product_name, quantity, action_date)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (scanned_data, product_id_for_log, product_name_for_log, user_id_from_session, action,
-              quantity if action == 'nhap' else -quantity))
+        ''', (session['username'], f'{action}_kho', product['id'], product['name'], quantity, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
         conn.commit()
         conn.close()
-        return jsonify({'success': True, 'message': log_message, 'product_id': product_id_for_log,
-                        'product_name': product_name_for_log}), 200
 
+        return jsonify({
+            'success': True,
+            'message': f'{action.title()} thành công {quantity} đơn vị sản phẩm {product["name"]}',
+            'new_qty': new_qty,
+            'qrcode_url': url_for('static', filename=product['product_qr_code_path']) if product['product_qr_code_path'] else None
+        })
     except Exception as e:
-        app.logger.error(f"API: Error updating inventory and log: {e}")
-        if 'conn' in locals() and conn: conn.rollback(); conn.close()
-        return jsonify({'error': f'Lỗi server: {str(e)}'}), 500
+        app.logger.error(f"Lỗi khi cập nhật tồn kho: {str(e)}")
+        if 'conn' in locals():
+            conn.rollback()
+            conn.close()
+        return jsonify({'error': f'Lỗi khi cập nhật tồn kho: {str(e)}'}), 500
 
 
 @app.route('/mobile-scan-product')
 def render_mobile_scan_page():
     if 'username' not in session:
         return redirect(url_for('login_page'))
-    category_slug = request.args.get('category_slug')  # Lấy category_slug từ query param
+    category_slug = request.args.get('category_slug')
     return render_template('mobile_scan_screen.html', category_slug=category_slug)
 
 
@@ -1050,5 +999,137 @@ def view_product_details_by_qr(product_internal_id):
         return redirect(url_for('product_dashboard_overview'))
 
 
+@app.route('/api/delete-products', methods=['POST'])
+def delete_products():
+    if 'username' not in session:
+        return jsonify({'error': 'Chưa đăng nhập hoặc phiên hết hạn'}), 401
+    
+    data = request.get_json()
+    product_ids = data.get('product_ids', [])
+    
+    if not product_ids:
+        return jsonify({'error': 'Không có sản phẩm nào được chọn'}), 400
+        
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Xóa sản phẩm
+        placeholders = ','.join('?' * len(product_ids))
+        c.execute(f'DELETE FROM products WHERE id IN ({placeholders})', product_ids)
+        
+        # Lấy tổng số sản phẩm còn lại
+        c.execute('SELECT COUNT(*) as total FROM products')
+        total_products = c.fetchone()['total']
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Đã xóa {len(product_ids)} sản phẩm',
+            'total_products': total_products
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return jsonify({'error': f'Lỗi khi xóa sản phẩm: {str(e)}'}), 500
+
+@app.route('/api/update-product/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    if 'username' not in session:
+        return jsonify({'error': 'Chưa đăng nhập hoặc phiên hết hạn'}), 401
+        
+    data = request.get_json()
+    name = data.get('name')
+    qty = data.get('qty')
+    
+    if not name or qty is None:
+        return jsonify({'error': 'Thiếu thông tin cập nhật'}), 400
+        
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        c.execute('''
+            UPDATE products 
+            SET name = ?, qty = ?
+            WHERE id = ?
+        ''', (name, qty, product_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cập nhật sản phẩm thành công'
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return jsonify({'error': f'Lỗi khi cập nhật sản phẩm: {str(e)}'}), 500
+
+@app.route('/api/generate-qr', methods=['POST'])
+def generate_qr():
+    if 'username' not in session:
+        return jsonify({'error': 'Chưa đăng nhập hoặc phiên hết hạn'}), 401
+
+    data = request.json
+    product_id = data.get('product_id')
+    product_name = data.get('product_name')
+
+    if not product_id or not product_name:
+        return jsonify({'error': 'Thiếu thông tin sản phẩm'}), 400
+
+    try:
+        # Tạo QR Code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(f"PRODUCT_{product_id}")
+        qr.make(fit=True)
+
+        # Tạo tên file QR Code
+        qr_filename = f"qr_{product_id}.png"
+        qr_path = os.path.join(os.path.dirname(__file__), 'static', 'product_qrcodes', qr_filename)
+
+        # Lưu QR Code
+        img = qr.make_image(fill_color="black", back_color="white")
+        img.save(qr_path)
+
+        # Lưu URL QR Code vào cơ sở dữ liệu
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE products 
+            SET qrcode_url = ? 
+            WHERE id = ?
+        ''', (f'/static/product_qrcodes/{qr_filename}', product_id))
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Tạo QR Code thành công',
+            'qrcode_url': f'/static/product_qrcodes/{qr_filename}'
+        })
+    except Exception as e:
+        app.logger.error(f"Lỗi khi tạo QR Code: {str(e)}")
+        return jsonify({'error': f'Lỗi khi tạo QR Code: {str(e)}'}), 500
+
+
 if __name__ == '__main__':
+    qr_folder = os.path.join(os.path.dirname(__file__), 'static', 'product_qrcodes')
+    if not os.path.exists(qr_folder):
+        os.makedirs(qr_folder)
+    legacy_qr_folder = os.path.join(os.path.dirname(__file__), 'static', 'qrcodes')
+    if not os.path.exists(legacy_qr_folder):
+        os.makedirs(legacy_qr_folder)
     app.run(debug=True, host='0.0.0.0', port=5000)
