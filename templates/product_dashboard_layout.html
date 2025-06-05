@@ -363,16 +363,10 @@
                             <span>Dashboard</span>
                         </a>
                     </li>
-                    <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_nhap_kho_quet_page' else '' }}">
-                        <a href="{{ url_for('pd_nhap_kho_quet_page') }}">
-                            <i class="fas fa-arrow-circle-down"></i>
-                            <span>Nhập kho</span>
-                        </a>
-                    </li>
-                    <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_xuat_kho_quet_page' else '' }}">
-                        <a href="{{ url_for('pd_xuat_kho_quet_page') }}">
-                            <i class="fas fa-arrow-circle-up"></i>
-                            <span>Xuất kho</span>
+                    <li class="sidebar-item {{ 'active' if request.endpoint == 'qr_management_overview' else '' }}">
+                        <a href="{{ url_for('qr_management_overview') }}">
+                            <i class="fas fa-qrcode"></i>
+                            <span>Quản lý QR</span>
                         </a>
                     </li>
                     <li class="sidebar-item {{ 'active' if request.endpoint == 'pd_ton_kho_quan_ly' else '' }}">

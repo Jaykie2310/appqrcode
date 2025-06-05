@@ -1,0 +1,451 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Quản lý {{ category_display_name }}{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="qr-management-page">
+    <!-- Tiêu đề trang -->
+    <header class="qr-header">
+        <h2>Quản lý {{ category_display_name }}</h2>
+        <p class="qr-subtitle">Quản lý mã QR và sản phẩm trong danh mục {{ category_display_name }}</p>
+    </header>
+
+    <!-- Thanh điều hướng phụ -->
+    <nav class="qr-nav" id="qrNav">
+        <div class="qr-nav-container">
+            <ul class="qr-nav-list">
+                <li class="qr-nav-item">
+                    <a href="{{ url_for('product_dashboard_overview') }}" class="qr-nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Trang chủ</span>
+                    </a>
+                </li>
+                <li class="qr-nav-item">
+                    <a href="{{ url_for('render_mobile_scan_page') }}" class="qr-nav-link">
+                        <i class="fas fa-camera"></i>
+                        <span>Quét mã</span>
+                    </a>
+                </li>
+                <li class="qr-nav-item">
+                    <a href="{{ url_for('qr_management_summary') }}" class="qr-nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Tổng hợp</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Nội dung chính -->
+    <div class="qr-content">
+        <div class="qr-content-grid">
+            <!-- Card thống kê -->
+            <div class="qr-stats-section">
+                <div class="qr-stats-grid">
+                    <div class="qr-stat-card">
+                        <div class="qr-stat-icon">
+                            <i class="fas fa-qrcode"></i>
+                        </div>
+                        <div class="qr-stat-info">
+                            <h3>Tổng QR</h3>
+                            <p class="qr-stat-number">156</p>
+                        </div>
+                    </div>
+                    <div class="qr-stat-card">
+                        <div class="qr-stat-icon">
+                            <i class="fas fa-scan"></i>
+                        </div>
+                        <div class="qr-stat-info">
+                            <h3>Lượt quét</h3>
+                            <p class="qr-stat-number">2,341</p>
+                        </div>
+                    </div>
+                    <div class="qr-stat-card">
+                        <div class="qr-stat-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="qr-stat-info">
+                            <h3>Sản phẩm</h3>
+                            <p class="qr-stat-number">89</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hình ảnh minh họa danh mục -->
+            <div class="qr-category-showcase">
+                <img src="{{ category_bg_image }}" alt="{{ category_display_name }}" class="qr-category-image">
+                <div class="qr-category-overlay">
+                    <h3>{{ category_display_name }}</h3>
+                    <p>{{ category_description }}</p>
+                </div>
+            </div>
+
+            <!-- Hoạt động gần đây -->
+            <div class="qr-recent-activity">
+                <h3>Hoạt động gần đây</h3>
+                <div class="qr-activity-list">
+                    <div class="qr-activity-item">
+                        <div class="qr-activity-icon">
+                            <i class="fas fa-qrcode"></i>
+                        </div>
+                        <div class="qr-activity-content">
+                            <p class="qr-activity-title">QR mới được tạo</p>
+                            <p class="qr-activity-desc">Sản phẩm trong danh mục {{ category_display_name }}</p>
+                            <span class="qr-activity-time">5 phút trước</span>
+                        </div>
+                    </div>
+                    <div class="qr-activity-item">
+                        <div class="qr-activity-icon">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <div class="qr-activity-content">
+                            <p class="qr-activity-title">Mã được quét</p>
+                            <p class="qr-activity-desc">Quét thành công sản phẩm mới</p>
+                            <span class="qr-activity-time">12 phút trước</span>
+                        </div>
+                    </div>
+                    <div class="qr-activity-item">
+                        <div class="qr-activity-icon">
+                            <i class="fas fa-plus-circle"></i>
+                        </div>
+                        <div class="qr-activity-content">
+                            <p class="qr-activity-title">Sản phẩm mới</p>
+                            <p class="qr-activity-desc">Thêm sản phẩm vào danh mục</p>
+                            <span class="qr-activity-time">1 giờ trước</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script để tự ẩn/hiện thanh qr-nav -->
+<script>
+(function() {
+    const nav = document.getElementById('qrNav');
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    function updateNavVisibility() {
+        const currentScrollY = window.scrollY;
+        
+        if (currentScrollY > lastScrollY + 10 && currentScrollY > 100) {
+            // Scroll xuống -> ẩn nav
+            nav.classList.add('qr-nav-hidden');
+        } else if (currentScrollY < lastScrollY - 10 || currentScrollY <= 100) {
+            // Scroll lên hoặc ở đầu trang -> hiện nav
+            nav.classList.remove('qr-nav-hidden');
+        }
+        
+        lastScrollY = currentScrollY;
+        ticking = false;
+    }
+
+    window.addEventListener('scroll', function() {
+        if (!ticking) {
+            requestAnimationFrame(updateNavVisibility);
+            ticking = true;
+        }
+    });
+})();
+</script>
+
+<style>
+/* CSS riêng cho trang Quản lý QR */
+.qr-management-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.qr-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.qr-header h2 {
+    font-size: 2rem;
+    color: var(--sidebar-bg-color);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.qr-subtitle {
+    color: var(--text-gray-600);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Thanh điều hướng phụ */
+.qr-nav {
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    position: sticky;
+    top: 1rem;
+    z-index: 100;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.qr-nav-hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+}
+
+.qr-nav-container {
+    padding: 1rem;
+}
+
+.qr-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.qr-nav-item {
+    flex: 1;
+}
+
+.qr-nav-link {
+    text-decoration: none;
+    color: var(--sidebar-bg-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.qr-nav-link:hover {
+    background-color: var(--background-color);
+    color: var(--sidebar-active-bg-color);
+    transform: translateY(-2px);
+}
+
+.qr-nav-link i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.qr-nav-link span {
+    font-size: 0.9rem;
+}
+
+/* Nội dung chính */
+.qr-content {
+    padding: 1rem 0;
+}
+
+.qr-content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+/* Thống kê */
+.qr-stats-section {
+    background: linear-gradient(135deg, var(--sidebar-bg-color), var(--sidebar-active-bg-color));
+    border-radius: 16px;
+    padding: 2rem;
+    color: white;
+}
+
+.qr-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.qr-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1.5rem;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+.qr-stat-icon {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 1rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-stat-icon i {
+    font-size: 1.5rem;
+}
+
+.qr-stat-info h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.qr-stat-number {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Hình ảnh danh mục */
+.qr-category-showcase {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    height: 300px;
+}
+
+.qr-category-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.qr-category-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    color: white;
+    padding: 2rem;
+}
+
+.qr-category-overlay h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+}
+
+.qr-category-overlay p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+/* Hoạt động gần đây */
+.qr-recent-activity {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.qr-recent-activity h3 {
+    margin: 0 0 1.5rem 0;
+    color: var(--sidebar-bg-color);
+    font-size: 1.3rem;
+}
+
+.qr-activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.qr-activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.qr-activity-item:hover {
+    background-color: var(--background-color);
+}
+
+.qr-activity-icon {
+    background: var(--accent-color);
+    color: var(--sidebar-bg-color);
+    padding: 0.75rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.qr-activity-content {
+    flex: 1;
+}
+
+.qr-activity-title {
+    margin: 0 0 0.25rem 0;
+    font-weight: 600;
+    color: var(--sidebar-bg-color);
+}
+
+.qr-activity-desc {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-gray-600);
+    font-size: 0.9rem;
+}
+
+.qr-activity-time {
+    font-size: 0.8rem;
+    color: var(--text-gray-600);
+    opacity: 0.8;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+    .qr-content-grid {
+        grid-template-columns: 2fr 1fr;
+        grid-template-areas: 
+            "stats category"
+            "activity activity";
+    }
+    
+    .qr-stats-section {
+        grid-area: stats;
+    }
+    
+    .qr-category-showcase {
+        grid-area: category;
+    }
+    
+    .qr-recent-activity {
+        grid-area: activity;
+    }
+}
+
+@media (max-width: 768px) {
+    .qr-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .qr-nav-link {
+        padding: 0.5rem;
+    }
+    
+    .qr-nav-link i {
+        font-size: 1.2rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .qr-nav-link span {
+        font-size: 0.8rem;
+    }
+    
+    .qr-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .qr-stat-card {
+        padding: 1rem;
+    }
+}
+</style>
+{% endblock %}

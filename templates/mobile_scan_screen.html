@@ -4,349 +4,471 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quét Mã Vạch</title>
-
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f8f9fa;
-        }
-
-        .scan-container {
-            max-width: 800px;
+        body { font-family: 'Roboto', sans-serif; background-color: #f8f9fa; }
+        .scan-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .result-section { background-color: #fff; padding: 20px; border-radius: 10px; margin-top: 20px; }
+        .nutrition-info { background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        #reader {
+            width: 100%;
+            max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
-        }
-
-        #video-container {
-            width: 100%;
-            height: 300px;
-            position: relative;
+            border: 2px solid #ddd;
+            border-radius: 10px;
             overflow: hidden;
-            border-radius: 10px;
-            background-color: #000;
-            margin-bottom: 20px;
-        }
-
-        #interactive.viewport {
-            width: 100%;
-            height: 300px;
             position: relative;
+            aspect-ratio: 4/3;
         }
-
-        #interactive.viewport > canvas, #interactive.viewport > video {
-            max-width: 100%;
+        #reader video {
             width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
-
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        /* Khung quét */
+        .scan-region-highlight {
+            border: 2px solid #0ea5e9 !important;
+            border-radius: 0 !important;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
         }
-
-        .card-header {
-            background-color: #fff;
-            border-bottom: 1px solid #eee;
-            border-radius: 15px 15px 0 0 !important;
+        .scan-region-highlight-svg {
+            stroke: #0ea5e9 !important;
         }
-
-        .btn-control {
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .btn-control:hover {
-            transform: translateY(-2px);
-        }
-
-        .result-container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-
-        .upload-container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-
-        .custom-file-upload {
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .custom-file-upload:hover {
-            border-color: #0d6efd;
-            background-color: #f8f9fa;
-        }
-
-        #scan-result, #upload-result {
-            word-break: break-all;
-        }
-
-        .loading-spinner {
+        /* Ẩn các phần tử HTML5-QRCode mặc định */
+        #reader__scan_region img {
             display: none;
-            text-align: center;
-            padding: 20px;
         }
-
-        @media (max-width: 768px) {
-            .scan-container {
-                padding: 10px;
-            }
-
-            #video-container {
-                height: 250px;
-            }
+        #reader__dashboard {
+            display: none !important;
         }
+        /* Góc quét */
+        .scan-corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #0ea5e9;
+        }
+        .scan-corner-top-left {
+            top: 25%;
+            left: 25%;
+            border-right: none;
+            border-bottom: none;
+        }
+        .scan-corner-top-right {
+            top: 25%;
+            right: 25%;
+            border-left: none;
+            border-bottom: none;
+        }
+        .scan-corner-bottom-left {
+            bottom: 25%;
+            left: 25%;
+            border-right: none;
+            border-top: none;
+        }
+        .scan-corner-bottom-right {
+            bottom: 25%;
+            right: 25%;
+            border-left: none;
+            border-top: none;
+        }
+        .tab-content { padding: 20px 0; }
+        .nav-tabs .nav-link { color: #6c757d; font-weight: 500; }
+        .nav-tabs .nav-link.active { color: #0ea5e9; font-weight: 600; }
     </style>
 </head>
 <body>
     <div class="scan-container">
         <div class="card mb-4">
-            <div class="card-header">
-                <h2 class="mb-0"><i class="fas fa-camera me-2"></i>Quét Mã Vạch</h2>
+            <div class="card-header bg-white">
+                <h2 class="mb-0"><i class="fas fa-barcode me-2"></i>Quét Mã Vạch</h2>
             </div>
             <div class="card-body">
-                <div id="video-container" class="mb-3">
-                    <div id="interactive" class="viewport"></div>
-                </div>
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs" id="scanTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera" type="button" role="tab">
+                            <i class="fas fa-camera me-2"></i>Camera
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
+                            <i class="fas fa-upload me-2"></i>Tải ảnh lên
+                        </button>
+                    </li>
+                </ul>
 
-                <div class="d-flex justify-content-center gap-2 mb-3">
-                    <button id="start-scan" class="btn btn-primary btn-control">
-                        <i class="fas fa-play me-2"></i>Bắt đầu quét
-                    </button>
-                    <button id="stop-scan" class="btn btn-danger btn-control" disabled>
-                        <i class="fas fa-stop me-2"></i>Dừng quét
-                    </button>
-                </div>
+                <!-- Tab Content -->
+                <div class="tab-content" id="scanTabsContent">
+                    <!-- Camera Tab -->
+                    <div class="tab-pane fade show active" id="camera" role="tabpanel">
+                        <div id="reader">
+                            <!-- Góc quét -->
+                            <div class="scan-corner scan-corner-top-left"></div>
+                            <div class="scan-corner scan-corner-top-right"></div>
+                            <div class="scan-corner scan-corner-bottom-left"></div>
+                            <div class="scan-corner scan-corner-bottom-right"></div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <button id="startButton" class="btn btn-primary me-2">
+                                <i class="fas fa-play me-2"></i>Bắt đầu quét
+                            </button>
+                            <button id="stopButton" class="btn btn-danger" disabled>
+                                <i class="fas fa-stop me-2"></i>Dừng quét
+                            </button>
+                        </div>
+                    </div>
 
-                <div class="result-container">
-                    <h4><i class="fas fa-barcode me-2"></i>Kết quả quét</h4>
-                    <div id="scan-result" class="mt-2 p-3 bg-light rounded">
-                        <p class="text-muted mb-0">Chưa có kết quả quét...</p>
+                    <!-- Upload Tab -->
+                    <div class="tab-pane fade" id="upload" role="tabpanel">
+                        <form id="barcode-upload-form" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="file-upload" class="form-label">Tải lên ảnh mã vạch</label>
+                                <input type="file" class="form-control" id="file-upload" name="file" accept="image/*" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-2"></i>Quét mã vạch
+                            </button>
+                        </form>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h3 class="mb-0"><i class="fas fa-upload me-2"></i>Tải ảnh lên</h3>
-            </div>
-            <div class="card-body">
-                <form id="barcode-upload-form" enctype="multipart/form-data">
-                    <label for="file-upload" class="custom-file-upload w-100 mb-3">
-                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
-                        <p class="mb-0">Kéo thả ảnh vào đây hoặc click để chọn file</p>
-                        <input id="file-upload" type="file" name="file" accept="image/*" style="display: none;" required>
-                    </label>
-                    <div id="file-name" class="mb-3 text-muted"></div>
-                    <button type="submit" class="btn btn-success btn-control w-100">
-                        <i class="fas fa-search me-2"></i>Quét mã vạch từ ảnh
-                    </button>
-                </form>
+                <!-- Kết quả quét -->
+                <div id="scan-result" class="result-section" style="display: none;">
+                    <h4 class="mb-4">Thông tin sản phẩm</h4>
 
-                <div class="loading-spinner" id="loading-spinner">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tên sản phẩm</label>
+                                <input type="text" id="productName" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nhà sản xuất</label>
+                                <input type="text" id="manufacturer" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Xuất xứ</label>
+                                <input type="text" id="origin" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Dung tích/Khối lượng</label>
+                                <input type="text" id="volume" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="nutrition-info">
+                        <h5 class="mb-3">Thông tin dinh dưỡng (trên 100g)</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Năng lượng</label>
+                                    <input type="text" id="energy" class="form-control" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Protein</label>
+                                    <input type="text" id="proteins" class="form-control" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Carbohydrates</label>
+                                    <input type="text" id="carbohydrates" class="form-control" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Chất béo</label>
+                                    <input type="text" id="fat" class="form-control" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h5 class="mb-3">Thông tin nhập kho</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Số lượng</label>
+                                    <input type="number" id="quantity" class="form-control" min="1" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Ngày nhập</label>
+                                    <input type="text" id="scanDate" class="form-control" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="stockInButton" class="btn btn-success w-100">
+                            <i class="fas fa-warehouse me-2"></i>Nhập kho
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading spinner -->
+                <div id="loading" class="text-center my-4" style="display: none;">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Đang xử lý...</span>
                     </div>
-                    <p class="mt-2 mb-0">Đang xử lý ảnh...</p>
+                    <p class="mt-2">Đang xử lý...</p>
                 </div>
 
-                <div id="upload-result" class="mt-3"></div>
+                <!-- Thông báo lỗi -->
+                <div id="error" class="alert alert-danger mt-3" style="display: none;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- QuaggaJS -->
-    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
-
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const videoContainer = document.getElementById("interactive");
-            const scanResultDisplay = document.getElementById("scan-result");
-            const startScanButton = document.getElementById("start-scan");
-            const stopScanButton = document.getElementById("stop-scan");
-            const fileUpload = document.getElementById("file-upload");
-            const fileName = document.getElementById("file-name");
-            const uploadForm = document.getElementById("barcode-upload-form");
-            const uploadResult = document.getElementById("upload-result");
-            const loadingSpinner = document.getElementById("loading-spinner");
+        document.addEventListener('DOMContentLoaded', function() {
+            const html5QrcodeScanner = new Html5Qrcode("reader");
+            const uploadForm = document.getElementById('barcode-upload-form');
+            const scanResult = document.getElementById('scan-result');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const stockInButton = document.getElementById('stockInButton');
+            const startButton = document.getElementById('startButton');
+            const stopButton = document.getElementById('stopButton');
+            const cameraTab = document.getElementById('camera-tab');
+            const uploadTab = document.getElementById('upload-tab');
 
-            // Cấu hình QuaggaJS
-            const quaggaConfig = {
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: videoContainer,
-                    constraints: {
-                        facingMode: "environment"
+            let isScanning = false;
+            let lastScannedCode = null;
+            let scanTimeout = null;
+
+            // Xử lý chuyển tab
+            cameraTab.addEventListener('shown.bs.tab', function (e) {
+                if (!isScanning) {
+                    startButton.disabled = false;
+                    stopButton.disabled = true;
+                }
+            });
+
+            uploadTab.addEventListener('shown.bs.tab', function (e) {
+                if (isScanning) {
+                    stopScanning();
+                }
+            });
+
+            // Xử lý khi rời khỏi trang
+            window.addEventListener('beforeunload', function() {
+                if (isScanning) {
+                    stopScanning();
+                }
+            });
+
+            startButton.addEventListener('click', function() {
+                if (!isScanning) {
+                    startScanning();
+                }
+            });
+
+            stopButton.addEventListener('click', function() {
+                if (isScanning) {
+                    stopScanning();
+                }
+            });
+
+            function startScanning() {
+                const config = {
+                    fps: 10,
+                    qrbox: {
+                        width: Math.floor(document.getElementById('reader').offsetWidth * 0.5),
+                        height: Math.floor(document.getElementById('reader').offsetHeight * 0.5)
                     },
-                },
-                decoder: {
-                    readers: [
-                        "ean_reader",
-                        "ean_8_reader",
-                        "code_128_reader",
-                        "code_39_reader",
-                        "upc_reader",
-                        "upc_e_reader"
-                    ]
-                },
-                locate: true
-            };
+                    aspectRatio: 4/3,
+                    rememberLastUsedCamera: true
+                };
 
-            // Xử lý nút bắt đầu quét
-            startScanButton.addEventListener("click", function() {
-                Quagga.init(quaggaConfig, function(err) {
-                    if (err) {
-                        console.error(err);
-                        scanResultDisplay.innerHTML = `
-                            <div class="alert alert-danger mb-0">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                Lỗi khi khởi tạo camera: ${err}
-                            </div>`;
-                        return;
-                    }
-                    Quagga.start();
-                    startScanButton.disabled = true;
-                    stopScanButton.disabled = false;
+                html5QrcodeScanner.start(
+                    { facingMode: { exact: "environment" } },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                ).then(() => {
+                    isScanning = true;
+                    startButton.disabled = true;
+                    stopButton.disabled = false;
+                }).catch((err) => {
+                    console.error(`Không thể khởi động camera: ${err}`);
+                    showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
                 });
+            }
+
+            function stopScanning() {
+                html5QrcodeScanner.stop().then(() => {
+                    isScanning = false;
+                    startButton.disabled = false;
+                    stopButton.disabled = true;
+                }).catch((err) => {
+                    console.error(`Lỗi khi dừng camera: ${err}`);
+                });
+            }
+
+            function onScanSuccess(decodedText) {
+                if (isScanning) {
+                    stopScanning();
+                    processBarcode(decodedText);
+                }
+            }
+
+            function onScanError(error) {
+                // Chỉ log lỗi nghiêm trọng
+                if (error !== 'QR code parse error, error = NotFoundException: No MultiFormat Readers were able to detect the code.') {
+                    console.error(`Lỗi quét: ${error}`);
+                }
+            }
+
+            function processBarcode(barcode) {
+                if (!barcode) {
+                    showError('Không thể đọc mã vạch');
+                    return;
+                }
+                showLoading();
+                fetch('/api/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code: barcode })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult(data.product);
+                    } else {
+                        showError(data.message || 'Không thể đọc mã vạch');
+                    }
+                })
+                .catch(err => {
+                    showError('Lỗi khi xử lý mã vạch: ' + err.message);
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+            }
+
+            uploadForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+
+                try {
+                    showLoading();
+                    const response = await fetch('/api/process_barcode_image', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showResult(data.product);
+                    } else {
+                        showError(data.message || 'Không thể đọc mã vạch');
+                    }
+                } catch (err) {
+                    showError('Lỗi khi xử lý ảnh: ' + err.message);
+                } finally {
+                    hideLoading();
+                }
             });
 
-            // Xử lý nút dừng quét
-            stopScanButton.addEventListener("click", function() {
-                Quagga.stop();
-                startScanButton.disabled = false;
-                stopScanButton.disabled = true;
-            });
+            stockInButton.addEventListener('click', async function() {
+                const quantity = document.getElementById('quantity').value;
+                if (!quantity || quantity < 1) {
+                    showError('Vui lòng nhập số lượng hợp lệ');
+                    return;
+                }
 
-            // Xử lý khi phát hiện mã vạch
-            Quagga.onDetected(function(result) {
-                if (result.codeResult && result.codeResult.code) {
-                    const code = result.codeResult.code;
-                    scanResultDisplay.innerHTML = `
-                        <div class="alert alert-success mb-0">
-                            <i class="fas fa-check-circle me-2"></i>
-                            Mã vạch: ${code}
-                        </div>`;
+                const productData = {
+                    name: document.getElementById('productName').value,
+                    manufacturer: document.getElementById('manufacturer').value,
+                    origin: document.getElementById('origin').value,
+                    volume: document.getElementById('volume').value,
+                    quantity: parseInt(quantity),
+                    scan_date: document.getElementById('scanDate').value,
+                    nutrition_data: {
+                        energy: document.getElementById('energy').value,
+                        proteins: document.getElementById('proteins').value,
+                        carbohydrates: document.getElementById('carbohydrates').value,
+                        fat: document.getElementById('fat').value
+                    }
+                };
 
-                    // Gọi API để lấy thông tin sản phẩm
-                    fetch('/api/scan', {
+                try {
+                    showLoading();
+                    const response = await fetch('/api/update-inventory', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ code: code })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const product = data.product;
-                            scanResultDisplay.innerHTML += `
-                                <div class="mt-3">
-                                    <h5>Thông tin sản phẩm:</h5>
-                                    <ul class="list-group">
-                                        <li class="list-group-item">Tên: ${product.name}</li>
-                                        <li class="list-group-item">Nhà sản xuất: ${product.manufacturer}</li>
-                                        <li class="list-group-item">Xuất xứ: ${product.origin}</li>
-                                        <li class="list-group-item">Khối lượng/Dung tích: ${product.volume}</li>
-                                    </ul>
-                                    ${product.image_url ? `<img src="${product.image_url}" class="img-fluid mt-3 rounded" alt="Hình sản phẩm">` : ''}
-                                </div>`;
-                        } else {
-                            scanResultDisplay.innerHTML += `
-                                <div class="alert alert-warning mt-3 mb-0">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    ${data.message}
-                                </div>`;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        scanResultDisplay.innerHTML += `
-                            <div class="alert alert-danger mt-3 mb-0">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                Lỗi khi lấy thông tin sản phẩm
-                            </div>`;
+                        body: JSON.stringify(productData)
                     });
-                }
-            });
 
-            // Hiển thị tên file khi chọn
-            fileUpload.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                    fileName.textContent = this.files[0].name;
-                }
-            });
+                    const result = await response.json();
 
-            // Xử lý form upload
-            uploadForm.addEventListener("submit", function(e) {
-                e.preventDefault();
-                loadingSpinner.style.display = 'block';
-                uploadResult.innerHTML = '';
-
-                let formData = new FormData(uploadForm);
-                fetch("/api/process_barcode_image", {
-                    method: "POST",
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    loadingSpinner.style.display = 'none';
-                    if (data.success) {
-                        const product = data.product;
-                        uploadResult.innerHTML = `
-                            <div class="alert alert-success">
-                                <h5><i class="fas fa-check-circle me-2"></i>Đã tìm thấy sản phẩm!</h5>
-                                <ul class="list-group mt-3">
-                                    <li class="list-group-item">Mã vạch: ${product.barcode}</li>
-                                    <li class="list-group-item">Tên: ${product.name}</li>
-                                    <li class="list-group-item">Nhà sản xuất: ${product.manufacturer}</li>
-                                    <li class="list-group-item">Xuất xứ: ${product.origin}</li>
-                                    <li class="list-group-item">Khối lượng/Dung tích: ${product.volume}</li>
-                                </ul>
-                                ${product.image_url ? `<img src="${product.image_url}" class="img-fluid mt-3 rounded" alt="Hình sản phẩm">` : ''}
-                            </div>`;
+                    if (result.success) {
+                        alert('Nhập kho thành công!');
+                        uploadForm.reset();
+                        scanResult.style.display = 'none';
                     } else {
-                        uploadResult.innerHTML = `
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                ${data.message}
-                            </div>`;
+                        showError(result.message || 'Lỗi khi nhập kho');
                     }
-                })
-                .catch(error => {
-                    loadingSpinner.style.display = 'none';
-                    uploadResult.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            Lỗi khi xử lý ảnh: ${error}
-                        </div>`;
-                });
+                } catch (err) {
+                    showError('Lỗi khi nhập kho: ' + err.message);
+                } finally {
+                    hideLoading();
+                }
             });
+
+            function showResult(product) {
+                document.getElementById('productName').value = product.name;
+                document.getElementById('manufacturer').value = product.manufacturer;
+                document.getElementById('origin').value = product.origin;
+                document.getElementById('volume').value = product.volume;
+                document.getElementById('energy').value = product.nutrition_data.energy + ' kcal/100g';
+                document.getElementById('proteins').value = product.nutrition_data.proteins + ' g/100g';
+                document.getElementById('carbohydrates').value = product.nutrition_data.carbohydrates + ' g/100g';
+                document.getElementById('fat').value = product.nutrition_data.fat + ' g/100g';
+                document.getElementById('scanDate').value = product.scan_date;
+
+                scanResult.style.display = 'block';
+                error.style.display = 'none';
+            }
+
+            function showError(message) {
+                error.textContent = message;
+                error.style.display = 'block';
+                scanResult.style.display = 'none';
+            }
+
+            function showLoading() {
+                loading.style.display = 'block';
+                error.style.display = 'none';
+            }
+
+            function hideLoading() {
+                loading.style.display = 'none';
+            }
         });
     </script>
 </body>

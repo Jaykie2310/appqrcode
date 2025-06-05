@@ -1,0 +1,541 @@
+{% extends "product_dashboard_layout.html" %}
+
+{% block page_specific_title %}Tổng hợp Quản lý QR{% endblock %}
+
+{% block product_dashboard_content %}
+<div class="qr-summary-page">
+    <header class="qr-summary-header">
+        <h2>Tổng hợp Quản lý QR</h2>
+        <p class="qr-summary-subtitle">Báo cáo tổng quan về hoạt động quản lý mã QR</p>
+    </header>
+
+    <div class="qr-summary-content">
+        <!-- Thống kê tổng quan -->
+        <div class="summary-stats-section">
+            <div class="summary-stats-grid">
+                <div class="summary-stat-card">
+                    <div class="summary-stat-header">
+                        <h3>Tổng số QR</h3>
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <div class="summary-stat-number">1,234</div>
+                    <div class="summary-stat-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+12% so với tháng trước</span>
+                    </div>
+                </div>
+
+                <div class="summary-stat-card">
+                    <div class="summary-stat-header">
+                        <h3>Lượt quét hôm nay</h3>
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <div class="summary-stat-number">456</div>
+                    <div class="summary-stat-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+8% so với hôm qua</span>
+                    </div>
+                </div>
+
+                <div class="summary-stat-card">
+                    <div class="summary-stat-header">
+                        <h3>Danh mục hoạt động</h3>
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="summary-stat-number">4</div>
+                    <div class="summary-stat-change neutral">
+                        <i class="fas fa-minus"></i>
+                        <span>Không thay đổi</span>
+                    </div>
+                </div>
+
+                <div class="summary-stat-card">
+                    <div class="summary-stat-header">
+                        <h3>Sản phẩm được quét</h3>
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                    <div class="summary-stat-number">789</div>
+                    <div class="summary-stat-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+15% so với tuần trước</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Biểu đồ hoạt động -->
+        <div class="summary-chart-section">
+            <div class="summary-chart-card">
+                <h3>Hoạt động quét QR trong 7 ngày qua</h3>
+                <div class="chart-placeholder">
+                    <img src="https://images.pexels.com/photos/590022/pexels-photo-590022.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Biểu đồ hoạt động" class="chart-image">
+                    <div class="chart-overlay">
+                        <p>Biểu đồ thống kê hoạt động quét mã QR</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top danh mục -->
+        <div class="summary-categories-section">
+            <h3>Top danh mục được quét nhiều nhất</h3>
+            <div class="categories-list">
+                <div class="category-item">
+                    <div class="category-info">
+                        <img src="https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg?auto=compress&cs=tinysrgb&w=200" alt="Thực phẩm" class="category-thumb">
+                        <div class="category-details">
+                            <h4>Hàng Thực phẩm</h4>
+                            <p>2,341 lượt quét</p>
+                        </div>
+                    </div>
+                    <div class="category-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 85%"></div>
+                        </div>
+                        <span class="progress-text">85%</span>
+                    </div>
+                </div>
+
+                <div class="category-item">
+                    <div class="category-info">
+                        <img src="https://images.pexels.com/photos/6585751/pexels-photo-6585751.jpeg?auto=compress&cs=tinysrgb&w=200" alt="Đồ gia dụng" class="category-thumb">
+                        <div class="category-details">
+                            <h4>Đồ gia dụng</h4>
+                            <p>1,876 lượt quét</p>
+                        </div>
+                    </div>
+                    <div class="category-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 68%"></div>
+                        </div>
+                        <span class="progress-text">68%</span>
+                    </div>
+                </div>
+
+                <div class="category-item">
+                    <div class="category-info">
+                        <img src="https://images.pexels.com/photos/996329/pexels-photo-996329.jpeg?auto=compress&cs=tinysrgb&w=200" alt="Thời trang" class="category-thumb">
+                        <div class="category-details">
+                            <h4>Thời trang</h4>
+                            <p>1,234 lượt quét</p>
+                        </div>
+                    </div>
+                    <div class="category-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 45%"></div>
+                        </div>
+                        <span class="progress-text">45%</span>
+                    </div>
+                </div>
+
+                <div class="category-item">
+                    <div class="category-info">
+                        <img src="https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=200" alt="Máy tính" class="category-thumb">
+                        <div class="category-details">
+                            <h4>Máy tính & Linh kiện</h4>
+                            <p>987 lượt quét</p>
+                        </div>
+                    </div>
+                    <div class="category-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 36%"></div>
+                        </div>
+                        <span class="progress-text">36%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hoạt động gần đây -->
+        <div class="summary-recent-section">
+            <h3>Hoạt động gần đây</h3>
+            <div class="recent-activities">
+                <div class="recent-item">
+                    <div class="recent-icon success">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <div class="recent-content">
+                        <h4>QR mới được tạo</h4>
+                        <p>Sản phẩm "Smartphone Galaxy S24" - Danh mục Máy tính & Linh kiện</p>
+                        <span class="recent-time">2 phút trước</span>
+                    </div>
+                </div>
+
+                <div class="recent-item">
+                    <div class="recent-icon info">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <div class="recent-content">
+                        <h4>Quét mã thành công</h4>
+                        <p>Sản phẩm "Bánh mì sandwich" - Danh mục Hàng Thực phẩm</p>
+                        <span class="recent-time">5 phút trước</span>
+                    </div>
+                </div>
+
+                <div class="recent-item">
+                    <div class="recent-icon warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="recent-content">
+                        <h4>Cảnh báo tồn kho</h4>
+                        <p>Sản phẩm "Áo thun cotton" sắp hết hàng - Danh mục Thời trang</p>
+                        <span class="recent-time">15 phút trước</span>
+                    </div>
+                </div>
+
+                <div class="recent-item">
+                    <div class="recent-icon success">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <div class="recent-content">
+                        <h4>Nhập kho mới</h4>
+                        <p>50 sản phẩm "Nồi cơm điện" - Danh mục Đồ gia dụng</p>
+                        <span class="recent-time">1 giờ trước</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* CSS cho trang Tổng hợp QR */
+.qr-summary-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.qr-summary-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.qr-summary-header h2 {
+    font-size: 2rem;
+    color: var(--sidebar-bg-color);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.qr-summary-subtitle {
+    color: var(--text-gray-600);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.qr-summary-content {
+    display: grid;
+    gap: 2rem;
+}
+
+/* Thống kê tổng quan */
+.summary-stats-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.summary-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.summary-stat-card {
+    background: linear-gradient(135deg, var(--sidebar-bg-color), var(--sidebar-active-bg-color));
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(30px, -30px);
+}
+
+.summary-stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.summary-stat-header h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.summary-stat-header i {
+    font-size: 1.5rem;
+    opacity: 0.8;
+}
+
+.summary-stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.summary-stat-change {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.summary-stat-change.positive {
+    color: #10B981;
+}
+
+.summary-stat-change.neutral {
+    color: #6B7280;
+}
+
+/* Biểu đồ */
+.summary-chart-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.summary-chart-card h3 {
+    margin: 0 0 1.5rem 0;
+    color: var(--sidebar-bg-color);
+    font-size: 1.3rem;
+}
+
+.chart-placeholder {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 300px;
+}
+
+.chart-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.chart-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 77, 46, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+/* Top danh mục */
+.summary-categories-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.summary-categories-section h3 {
+    margin: 0 0 1.5rem 0;
+    color: var(--sidebar-bg-color);
+    font-size: 1.3rem;
+}
+
+.categories-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border-radius: 8px;
+    background: var(--background-color);
+}
+
+.category-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.category-thumb {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.category-details h4 {
+    margin: 0 0 0.25rem 0;
+    color: var(--sidebar-bg-color);
+    font-size: 1rem;
+}
+
+.category-details p {
+    margin: 0;
+    color: var(--text-gray-600);
+    font-size: 0.9rem;
+}
+
+.category-progress {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 120px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #E5E7EB;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--sidebar-bg-color), var(--sidebar-active-bg-color));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--sidebar-bg-color);
+    min-width: 35px;
+}
+
+/* Hoạt động gần đây */
+.summary-recent-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.summary-recent-section h3 {
+    margin: 0 0 1.5rem 0;
+    color: var(--sidebar-bg-color);
+    font-size: 1.3rem;
+}
+
+.recent-activities {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.recent-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.recent-item:hover {
+    background-color: var(--background-color);
+}
+
+.recent-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.recent-icon.success {
+    background: #10B981;
+}
+
+.recent-icon.info {
+    background: #3B82F6;
+}
+
+.recent-icon.warning {
+    background: #F59E0B;
+}
+
+.recent-content {
+    flex: 1;
+}
+
+.recent-content h4 {
+    margin: 0 0 0.25rem 0;
+    color: var(--sidebar-bg-color);
+    font-size: 1rem;
+}
+
+.recent-content p {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-gray-600);
+    font-size: 0.9rem;
+}
+
+.recent-time {
+    font-size: 0.8rem;
+    color: var(--text-gray-600);
+    opacity: 0.8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .qr-summary-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .summary-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-stat-number {
+        font-size: 2rem;
+    }
+    
+    .category-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .category-progress {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .chart-placeholder {
+        height: 200px;
+    }
+}
+</style>
+{% endblock %}
