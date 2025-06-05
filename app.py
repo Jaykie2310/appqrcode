@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash, jsonify, make_response
+from flask_cors import CORS
 from captcha.image import ImageCaptcha
 import random
 import string
@@ -167,6 +168,27 @@ def generate_internal_product_id():
 
 
 app = Flask(__name__)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://appqrcodemanage.onrender.com",
+            "capacitor://localhost",
+            "http://localhost",
+            "http://localhost:8100"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
+
+# Thêm mobile-specific headers
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 
 @app.route('/api/process_barcode_image', methods=['POST'])
@@ -678,6 +700,8 @@ def scan_page():
     if 'username' not in session:
         session['username'] = 'test_user_email@example.com'
     response = make_response(render_template("mobile_scan_screen.html"))
+    response.headers['Permissions-Policy'] = 'camera=*, microphone=*'
+    response.headers['Feature-Policy'] = 'camera *; microphone *'
     return response
 
 @app.route("/inventory_test")

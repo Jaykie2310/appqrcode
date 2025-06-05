@@ -3,7 +3,23 @@
   "appName": "Quan Ly QR",
   "webDir": "www",
   "server": {
-    "url": "https://TEN-APP-CUA-BAN.onrender.com",
-    "cleartext": false 
+    "url": "https://appqrcodemanage.onrender.com",
+    "cleartext": true,
+    "allowNavigation": [
+      "https://appqrcodemanage.onrender.com/*",
+      "http://10.0.2.2:5000/*",
+      "http://localhost:5000/*"
+    ]
+  },
+  "plugins": {
+    "Camera": {
+      "permissions": ["camera"]
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  },
+  "android": {
+    "allowMixedContent": true
   }
 }

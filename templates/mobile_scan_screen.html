@@ -588,7 +588,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const html5QrcodeScanner = new Html5Qrcode("reader");
+            let html5Qrcode = null;
             const uploadForm = document.getElementById('barcode-upload-form');
             const scanResult = document.getElementById('scan-result');
             const loading = document.getElementById('loading');
@@ -598,9 +598,9 @@
             const stopButton = document.getElementById('stopButton');
             const cameraTab = document.getElementById('camera-tab');
             const uploadTab = document.getElementById('upload-tab');
+            const reader = document.getElementById('reader');
 
             let isScanning = false;
-            // *** THAY ĐỔI 1: Khai báo biến lưu mã vạch ***
             let currentScannedBarcode = null;
 
             // Xử lý chuyển tab
@@ -636,92 +636,75 @@
                 }
             });
 
-            function startScanning() {
-                const config = {
-                    fps: 10,
-                    qrbox: {
-                        width: Math.floor(document.getElementById('reader').offsetWidth * 0.6),
-                        height: Math.floor(document.getElementById('reader').offsetHeight * 0.4)
-                    },
-                    aspectRatio: 4/3,
-                    rememberLastUsedCamera: true,
-                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.QR_CODE,
-                        Html5QrcodeSupportedFormats.CODE_128,
-                        Html5QrcodeSupportedFormats.CODE_39,
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E
-                    ]
-                };
-
-                // Thử các tùy chọn camera theo thứ tự ưu tiên
-                const cameraOptions = [
-                    { facingMode: { exact: "environment" } }, // Camera sau (ưu tiên)
-                    { facingMode: "environment" }, // Camera sau (không bắt buộc exact)
-                    { facingMode: { exact: "user" } }, // Camera trước
-                    { facingMode: "user" }, // Camera trước (không bắt buộc exact)
-                    undefined // Bất kỳ camera nào
-                ];
-
-                let currentOptionIndex = 0;
-
-                function tryStartCamera() {
-                    if (currentOptionIndex >= cameraOptions.length) {
-                        showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera và thử lại.');
-                        return;
+            async function startScanning() {
+                try {
+                    if (!html5Qrcode) {
+                        html5Qrcode = new Html5Qrcode("reader");
                     }
 
-                    const currentOption = cameraOptions[currentOptionIndex];
-                    console.log(`Thử khởi động camera với option ${currentOptionIndex}:`, currentOption);
+                    const devices = await Html5Qrcode.getCameras();
+                    console.log("Cameras found:", devices);
 
-                    html5QrcodeScanner.start(
-                        currentOption,
+                    if (!devices || devices.length === 0) {
+                        throw new Error("Không tìm thấy camera nào");
+                    }
+
+                    // Ưu tiên camera sau
+                    let selectedCamera = devices[0].deviceId;
+                    for (const device of devices) {
+                        if (device.label.toLowerCase().includes('back')) {
+                            selectedCamera = device.deviceId;
+                            break;
+                        }
+                    }
+
+                    const config = {
+                        fps: 10,
+                        qrbox: {
+                            width: Math.floor(reader.offsetWidth * 0.6),
+                            height: Math.floor(reader.offsetHeight * 0.4)
+                        },
+                        aspectRatio: 4/3,
+                        formatsToSupport: [
+                            Html5QrcodeSupportedFormats.QR_CODE,
+                            Html5QrcodeSupportedFormats.CODE_128,
+                            Html5QrcodeSupportedFormats.CODE_39,
+                            Html5QrcodeSupportedFormats.EAN_13,
+                            Html5QrcodeSupportedFormats.EAN_8,
+                            Html5QrcodeSupportedFormats.UPC_A,
+                            Html5QrcodeSupportedFormats.UPC_E
+                        ]
+                    };
+
+                    await html5Qrcode.start(
+                        { deviceId: selectedCamera },
                         config,
                         onScanSuccess,
                         onScanError
-                    ).then(() => {
-                        isScanning = true;
-                        startButton.disabled = true;
-                        stopButton.disabled = false;
-                        console.log(`Camera khởi động thành công với option ${currentOptionIndex}`);
-                        
-                        // Hiển thị thông báo về camera đang sử dụng
-                        if (currentOptionIndex > 0) {
-                            showError(`Đã chuyển sang camera ${currentOptionIndex === 1 || currentOptionIndex === 2 ? 'trước' : 'khả dụng'}. Quét mã vạch bình thường.`);
-                            setTimeout(() => {
-                                error.style.display = 'none';
-                            }, 3000);
-                        }
-                    }).catch((err) => {
-                        console.error(`Camera option ${currentOptionIndex} failed:`, err);
-                        currentOptionIndex++;
-                        setTimeout(tryStartCamera, 500); // Thử option tiếp theo sau 500ms
-                    });
-                }
+                    );
 
-                tryStartCamera();
+                    isScanning = true;
+                    startButton.disabled = true;
+                    stopButton.disabled = false;
+                    console.log("Camera started successfully");
+                } catch (err) {
+                    console.error("Error starting camera:", err);
+                    showError("Không thể khởi động camera: " + err.message);
+                }
             }
 
-            function stopScanning() {
-                if (html5QrcodeScanner && isScanning) {
-                    html5QrcodeScanner.stop().then(() => {
+            async function stopScanning() {
+                if (html5Qrcode && isScanning) {
+                    try {
+                        await html5Qrcode.stop();
+                        html5Qrcode = null;
+                    } catch (err) {
+                        console.error("Error stopping camera:", err);
+                    } finally {
                         isScanning = false;
                         startButton.disabled = false;
                         stopButton.disabled = true;
-                    }).catch((err) => {
-                        console.error(`Lỗi khi dừng camera: ${err}`);
-                        // Ngay cả khi có lỗi, vẫn cập nhật trạng thái UI
-                        isScanning = false;
-                        startButton.disabled = false;
-                        stopButton.disabled = true;
-                    });
-                } else {
-                    isScanning = false;
-                    startButton.disabled = false;
-                    stopButton.disabled = true;
+                    }
                 }
             }
 
