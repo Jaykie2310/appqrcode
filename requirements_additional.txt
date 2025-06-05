@@ -1,9 +1,0 @@
-# Thư viện bổ sung để cải thiện việc quét mã vạch trên mobile
-opencv-python==4.8.1.78
-opencv-contrib-python==4.8.1.78
-numpy==1.24.3
-Pillow==10.0.1
-pyzbar==0.1.9
-
-# Thư viện dự phòng cho barcode detection (tùy chọn)
-# zxing==0.9.3  # Uncomment nếu muốn sử dụng zxing

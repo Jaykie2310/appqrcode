@@ -65,64 +65,45 @@ def decode_with_multiple_methods(image):
     """Thử nhiều phương pháp decode khác nhau"""
     results = []
     
-    # Phương pháp 1: pyzbar
-    try:
-        from pyzbar.pyzbar import decode as pyzbar_decode
-        decoded_objects = pyzbar_decode(image)
-        if decoded_objects:
-            for obj in decoded_objects:
-                results.append({
-                    'data': obj.data.decode('utf-8'),
-                    'type': obj.type,
-                    'method': 'pyzbar'
-                })
-    except Exception as e:
-        app.logger.warning(f"pyzbar decode failed: {str(e)}")
+    # Thử các phương pháp tiền xử lý ảnh khác nhau
+    processed_images = [image]  # Bắt đầu với ảnh gốc
     
-    # Phương pháp 2: zxing (nếu có)
-    try:
-        import zxing
-        reader = zxing.BarCodeReader()
-        # Lưu ảnh tạm thời
-        temp_path = '/tmp/temp_barcode.png'
-        image.save(temp_path)
-        barcode = reader.decode(temp_path)
-        if barcode:
-            results.append({
-                'data': barcode.parsed,
-                'type': barcode.format,
-                'method': 'zxing'
-            })
-        # Xóa file tạm
-        import os
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-    except Exception as e:
-        app.logger.warning(f"zxing decode failed: {str(e)}")
-    
-    # Phương pháp 3: opencv barcode detector (nếu có)
     try:
         import cv2
         import numpy as np
         
-        # Chuyển đổi sang OpenCV format
+        # Chuyển PIL Image sang OpenCV format
         opencv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         gray = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2GRAY)
         
-        # Sử dụng OpenCV barcode detector
-        detector = cv2.barcode.BarcodeDetector()
-        retval, decoded_info, decoded_type, points = detector.detectAndDecode(gray)
+        # Thêm các phiên bản xử lý ảnh khác nhau
+        processed_images.extend([
+            Image.fromarray(gray),  # Ảnh grayscale
+            Image.fromarray(cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]),  # Threshold
+            Image.fromarray(cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2))  # Adaptive threshold
+        ])
         
-        if retval:
-            for i, info in enumerate(decoded_info):
-                if info:
-                    results.append({
-                        'data': info,
-                        'type': decoded_type[i] if i < len(decoded_type) else 'unknown',
-                        'method': 'opencv'
-                    })
     except Exception as e:
-        app.logger.warning(f"opencv decode failed: {str(e)}")
+        app.logger.warning(f"Image preprocessing failed: {str(e)}")
+    
+    # Thử decode với từng ảnh đã xử lý
+    for proc_image in processed_images:
+        # Phương pháp 1: pyzbar
+        try:
+            from pyzbar.pyzbar import decode as pyzbar_decode
+            decoded_objects = pyzbar_decode(proc_image)
+            if decoded_objects:
+                for obj in decoded_objects:
+                    results.append({
+                        'data': obj.data.decode('utf-8'),
+                        'type': obj.type,
+                        'method': 'pyzbar'
+                    })
+        except Exception as e:
+            app.logger.warning(f"pyzbar decode failed: {str(e)}")
+        
+        if results:  # Nếu đã tìm thấy kết quả, dừng lại
+            break
     
     return results
 
@@ -690,8 +671,38 @@ def scan_product_openfoodfacts():
 
 
 @app.after_request
-def add_security_headers(response):
-    response.headers['Permissions-Policy'] = 'camera=(self)'
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    # Cải thiện header cho camera và microphone
+    response.headers['Permissions-Policy'] = 'camera=*, microphone=*, geolocation=()'
+    response.headers['Feature-Policy'] = 'camera *; microphone *'
+    # Thêm header HTTPS cho camera trên mobile
+    response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; media-src 'self' blob: data:;"
+    return response
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    # Cải thiện header cho camera và microphone
+    response.headers['Permissions-Policy'] = 'camera=*, microphone=*, geolocation=()'
+    response.headers['Feature-Policy'] = 'camera *; microphone *'
+    # Thêm header HTTPS cho camera trên mobile
+    response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; media-src 'self' blob: data:;"
+    return response
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    # Cải thiện header cho camera và microphone
+    response.headers['Permissions-Policy'] = 'camera=*, microphone=*, geolocation=()'
+    response.headers['Feature-Policy'] = 'camera *; microphone *'
+    # Thêm header HTTPS cho camera trên mobile
+    response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; media-src 'self' blob: data:;"
     return response
 
 
@@ -1217,6 +1228,99 @@ def pd_xuat_kho_quet_page():
     return render_template('product_dashboard_content_xuatkho.html')
 
 
+@app.route('/api/process_qr_image', methods=['POST'])
+def process_qr_image():
+    if 'username' not in session:
+        return jsonify({'error': 'Chưa đăng nhập hoặc phiên hết hạn'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'Không có file ảnh được gửi'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'Không có file nào được chọn'}), 400
+
+    try:
+        # Đọc ảnh và decode QR code
+        image = Image.open(file.stream)
+        app.logger.info(f"Processing QR image: {file.filename}, size: {image.size}")
+        
+        # Thử nhiều phương pháp decode QR code
+        qr_data = None
+        
+        # Phương pháp 1: Sử dụng pyzbar
+        try:
+            from pyzbar.pyzbar import decode as pyzbar_decode
+            decoded_objects = pyzbar_decode(image)
+            if decoded_objects:
+                qr_data = decoded_objects[0].data.decode('utf-8')
+                app.logger.info(f"QR decoded with pyzbar: {qr_data}")
+        except Exception as e:
+            app.logger.warning(f"pyzbar decode failed: {str(e)}")
+        
+        # Phương pháp 2: Sử dụng OpenCV nếu pyzbar thất bại
+        if not qr_data:
+            try:
+                import cv2
+                import numpy as np
+                
+                # Chuyển PIL Image sang OpenCV format
+                opencv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+                
+                # Thử decode với OpenCV QRCodeDetector
+                detector = cv2.QRCodeDetector()
+                data, bbox, straight_qrcode = detector.detectAndDecode(opencv_image)
+                
+                if data:
+                    qr_data = data
+                    app.logger.info(f"QR decoded with OpenCV: {qr_data}")
+                else:
+                    # Thử với ảnh grayscale
+                    gray = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2GRAY)
+                    data, bbox, straight_qrcode = detector.detectAndDecode(gray)
+                    if data:
+                        qr_data = data
+                        app.logger.info(f"QR decoded with OpenCV (grayscale): {qr_data}")
+                        
+            except Exception as e:
+                app.logger.warning(f"OpenCV decode failed: {str(e)}")
+        
+        # Phương pháp 3: Thử với ảnh đã xử lý (resize, enhance contrast)
+        if not qr_data:
+            try:
+                # Resize ảnh nếu quá nhỏ
+                if image.size[0] < 300 or image.size[1] < 300:
+                    new_size = (max(300, image.size[0]), max(300, image.size[1]))
+                    image_resized = image.resize(new_size, Image.Resampling.LANCZOS)
+                    
+                    # Thử decode lại với ảnh đã resize
+                    decoded_objects = pyzbar_decode(image_resized)
+                    if decoded_objects:
+                        qr_data = decoded_objects[0].data.decode('utf-8')
+                        app.logger.info(f"QR decoded with resized image: {qr_data}")
+                        
+            except Exception as e:
+                app.logger.warning(f"Resize decode failed: {str(e)}")
+        
+        if not qr_data:
+            app.logger.error("All QR decode methods failed")
+            return jsonify({
+                'success': False, 
+                'message': 'Không thể đọc mã QR từ ảnh. Vui lòng thử với ảnh chất lượng cao hơn hoặc chụp lại QR code rõ nét hơn.'
+            }), 400
+
+        # Lấy dữ liệu từ QR code đầu tiên tìm thấy
+        app.logger.info(f"Successfully decoded QR: {qr_data}")
+        
+        return jsonify({
+            'success': True,
+            'qr_data': qr_data
+        })
+
+    except Exception as e:
+        app.logger.error(f"Error processing QR image: {e}")
+        return jsonify({'success': False, 'message': f'Lỗi khi xử lý ảnh: {str(e)}'}), 500
+
 @app.route('/api/get-product-info-from-scan', methods=['POST'])
 def get_product_info_from_scan():
     if 'username' not in session:
@@ -1225,16 +1329,45 @@ def get_product_info_from_scan():
     scanned_data = data.get('scanned_data')
     if not scanned_data:
         return jsonify({'error': 'Không nhận được dữ liệu mã quét'}), 400
+    
     app.logger.info(f"API: Yêu cầu thông tin sản phẩm cho mã quét: {scanned_data}")
+    
+    # Xử lý trường hợp QR code chứa URL
+    product_id_internal = None
+    if scanned_data.startswith('http'):
+        # Trích xuất product_id_internal từ URL
+        # URL format: http://127.0.0.1:5000/san-pham/qr-info/158621
+        try:
+            product_id_internal = scanned_data.split('/')[-1]
+            app.logger.info(f"Extracted product_id_internal from URL: {product_id_internal}")
+        except:
+            app.logger.warning(f"Could not extract product_id_internal from URL: {scanned_data}")
+    else:
+        # Trường hợp QR code chứa trực tiếp product_id_internal hoặc barcode
+        product_id_internal = scanned_data
+    
     conn = get_db_connection()
     c = conn.cursor()
+    
+    # Tìm kiếm sản phẩm dựa trên product_id_internal hoặc barcode_data
     c.execute("""
         SELECT id, name, product_id_internal, barcode_data, price, qty, category, expiry_date
         FROM products
         WHERE product_id_internal = ? OR barcode_data = ?
-    """, (scanned_data, scanned_data))
+    """, (product_id_internal, product_id_internal))
     product_row = c.fetchone()
+    
+    # Nếu không tìm thấy và scanned_data là URL, thử tìm với scanned_data gốc
+    if not product_row and scanned_data.startswith('http'):
+        c.execute("""
+            SELECT id, name, product_id_internal, barcode_data, price, qty, category, expiry_date
+            FROM products
+            WHERE product_id_internal = ? OR barcode_data = ?
+        """, (scanned_data, scanned_data))
+        product_row = c.fetchone()
+    
     conn.close()
+    
     if product_row:
         product_details = dict(product_row)
         if product_details.get('expiry_date'):
@@ -1245,7 +1378,7 @@ def get_product_info_from_scan():
         app.logger.info(f"API: Sản phẩm được tìm thấy: {product_details}")
         return jsonify(product_details), 200
     else:
-        app.logger.warning(f"API: Không tìm thấy sản phẩm cho mã quét: {scanned_data}")
+        app.logger.warning(f"API: Không tìm thấy sản phẩm cho mã quét: {scanned_data} (extracted: {product_id_internal})")
         return jsonify({'error': 'Sản phẩm không tồn tại trong hệ thống'}), 404
 
 

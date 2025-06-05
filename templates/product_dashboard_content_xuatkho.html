@@ -14,8 +14,24 @@
 </div>
 
 <div class="bg-white rounded-xl shadow-md p-6">
-    {# QR Scanner Section #}
-    <div class="mb-8">
+    {# Tabs for Scanner and Upload #}
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner" type="button" role="tab">
+                <i class="fas fa-camera me-2"></i>Quét mã QR
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
+                <i class="fas fa-upload me-2"></i>Tải ảnh QR lên
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        {# QR Scanner Tab #}
+        <div class="tab-pane fade show active" id="scanner" role="tabpanel">
+            <div class="mb-8">
         <div id="reader" class="w-full max-w-2xl mx-auto border-2 border-slate-200 rounded-xl overflow-hidden aspect-[4/3] relative">
             <div class="scan-corner scan-corner-top-left"></div>
             <div class="scan-corner scan-corner-top-right"></div>
@@ -32,7 +48,43 @@
         </div>
     </div>
 
-    {# Product Info Section - Initially Hidden #}
+        </div>
+
+        {# QR Upload Tab #}
+        <div class="tab-pane fade" id="upload" role="tabpanel">
+            <div class="mb-8">
+                <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-slate-400 mb-4"></i>
+                        <h3 class="text-lg font-semibold text-slate-700 mb-2">Tải ảnh QR Code lên</h3>
+                        <p class="text-slate-500 mb-4">Chọn ảnh QR code từ thiết bị của bạn</p>
+                    </div>
+                    <form id="qr-upload-form" enctype="multipart/form-data">
+                        <input type="file" id="qr-file-input" name="file" accept="image/*" class="hidden">
+                        <button type="button" onclick="document.getElementById('qr-file-input').click()" 
+                                class="bg-[#2d9596] hover:bg-[#1a4d2e] text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+                            <i class="fas fa-folder-open mr-2"></i>Chọn ảnh QR
+                        </button>
+                    </form>
+                    <div id="selected-file-info" class="hidden mt-4">
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <i class="fas fa-image text-slate-500 mr-2"></i>
+                                    <span id="file-name" class="text-slate-700"></span>
+                                </div>
+                                <button onclick="processUploadedQR()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm">
+                                    <i class="fas fa-search mr-1"></i>Phân tích QR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Product Info Section - Initially Hidden (shared between both tabs) #}
     <div id="productInfo" class="hidden">
         <div class="border-t border-slate-200 pt-6">
             <h3 class="text-xl font-bold text-slate-800 mb-4">Thông tin sản phẩm</h3>
@@ -72,6 +124,13 @@
     <div id="error" class="hidden">
         <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             <p class="text-sm" id="errorMessage"></p>
+        </div>
+    </div>
+
+    {# Success Message #}
+    <div id="success" class="hidden">
+        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <p class="text-sm" id="successMessage"></p>
         </div>
     </div>
 </div>
@@ -256,7 +315,75 @@ document.addEventListener('DOMContentLoaded', function() {
         const errorMessage = document.getElementById('errorMessage');
         errorMessage.textContent = message;
         errorDiv.classList.remove('hidden');
+        document.getElementById('success').classList.add('hidden');
     }
+
+    function showSuccess(message) {
+        const successDiv = document.getElementById('success');
+        const successMessage = document.getElementById('successMessage');
+        successMessage.textContent = message;
+        successDiv.classList.remove('hidden');
+        document.getElementById('error').classList.add('hidden');
+    }
+
+    // Handle file upload for QR code
+    document.getElementById('qr-file-input').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            document.getElementById('file-name').textContent = file.name;
+            document.getElementById('selected-file-info').classList.remove('hidden');
+        }
+    });
+
+    // Process uploaded QR code image
+    window.processUploadedQR = function() {
+        const fileInput = document.getElementById('qr-file-input');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            showError('Vui lòng chọn một file ảnh');
+            return;
+        }
+
+        // Check file type
+        if (!file.type.startsWith('image/')) {
+            showError('Vui lòng chọn file ảnh hợp lệ');
+            return;
+        }
+
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showError('File ảnh quá lớn. Vui lòng chọn file nhỏ hơn 5MB');
+            return;
+        }
+
+        showLoading();
+
+        // Create FormData to send file
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Send to server for QR processing
+        fetch('/api/process_qr_image', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success && data.qr_data) {
+                // Process the QR data to get product info
+                processScannedCode(data.qr_data);
+                showSuccess('Đã phân tích QR code thành công!');
+            } else {
+                showError(data.message || 'Không thể đọc QR code từ ảnh');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showError('Lỗi khi xử lý ảnh: ' + error.message);
+        });
+    };
 });
 </script>
 {% endblock %}
