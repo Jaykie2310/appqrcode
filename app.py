@@ -20,6 +20,9 @@ import io
 def decode(image):
     try:
         from pyzbar.pyzbar import decode as pyzbar_decode
+        if image.mode != 'L':
+            image = image.convert('L')
+        print(f"Decoding image. Mode: {image.mode}, Size: {image.size}")
         decoded_objects = pyzbar_decode(image)
         if decoded_objects:
             return decoded_objects
@@ -152,18 +155,14 @@ def update_inventory():
         c.execute("""
             INSERT INTO products (
                 name, manufacturer, origin, volume_weight, date_added,
-                energy, proteins, carbohydrates, fat, quantity, qr_code_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                qty, product_qr_code_path
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             data['name'],
             data['manufacturer'],
             data['origin'],
             data['volume'],
             data['scan_date'],
-            data['nutrition_data']['energy'].split()[0],  # Lấy giá trị số từ "X kcal/100g"
-            data['nutrition_data']['proteins'].split()[0],
-            data['nutrition_data']['carbohydrates'].split()[0],
-            data['nutrition_data']['fat'].split()[0],
             data['quantity'],
             os.path.join('qrcodes', qr_filename)
         ))

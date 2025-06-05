@@ -3,52 +3,77 @@
 {% block page_specific_title %}Quản Lý Tồn Kho{% endblock %}
 
 {% block product_dashboard_content %}
-<div class="card">
-    <div class="card-header">
-        <h4><i class="fas fa-boxes-stacked"></i> Thông Tin Tồn Kho Sản Phẩm</h4>
+<div class="container mx-auto p-6" x-data="stockManager()">
+    <h2 class="text-4xl font-extrabold mb-10 text-gray-900 tracking-tight">Thông Tin Tồn Kho Sản Phẩm</h2>
+    <p class="mb-8 text-gray-700 text-lg">Quản lý số lượng sản phẩm trong kho. Bạn có thể thêm, sửa, xóa sản phẩm tại trang <a href="{{ url_for('qr_management_detail', category_slug='thuc-pham') }}" class="text-blue-600 underline">Quản lý Sản phẩm (Công cụ Sales)</a>.</p>
+
+    <div class="mb-8">
+        <a href="{{ url_for('qr_management_detail', category_slug='thuc-pham') }}" class="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">Quản lý Sản phẩm</a>
     </div>
-    <div class="card-body">
-        <p>Xem và quản lý số lượng các sản phẩm trong kho. Bạn có thể thêm, sửa, xóa sản phẩm tại trang <a href="{{ url_for('sales_management_tool') }}">Quản lý Sản phẩm (Công cụ Sales)</a>.</p>
 
-        {# Thêm bộ lọc theo danh mục nếu cần #}
-        {# <form method="GET" class="mb-3"> ... </form> #}
+    {% if products %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        {% for product in products %}
+        <div x-data="{ open: false, inputQty: 1, outputQty: 1 }" class="bg-white rounded-lg shadow-md border border-gray-200 p-6 cursor-pointer hover:shadow-lg transition duration-300 ease-in-out flex flex-col items-center" @click="open = !open">
+            <img src="{{ product.qrcode_url }}" alt="QR Code {{ product.name }}" class="w-32 h-32 object-contain mb-4" />
+            <h3 class="text-xl font-semibold text-gray-900 mb-1 hover:text-blue-600 transition duration-200" @click.stop="open = !open">{{ product.name }}</h3>
+            <p class="text-gray-700 mb-1 text-lg">Số lượng tồn: <span class="font-bold text-gray-900">{{ product.qty }}</span></p>
+            {% if product.category %}
+            <p class="text-gray-500 mb-4 text-sm uppercase tracking-wide font-medium">{{ product.category }}</p>
+            {% endif %}
 
-        {% if products %}
-        <table class="table table-striped table-hover table-bordered" style="width:100%; border-collapse: collapse; margin-top: 15px;">
-            <thead style="background-color: #e9ecef;">
-                <tr>
-                    <th style="padding: 10px; border: 1px solid #dee2e6;">ID</th>
-                    <th style="padding: 10px; border: 1px solid #dee2e6;">Tên Sản Phẩm</th>
-                    <th style="padding: 10px; border: 1px solid #dee2e6;">Danh Mục</th>
-                    <th style="padding: 10px; border: 1px solid #dee2e6; text-align:right;">Giá</th>
-                    <th style="padding: 10px; border: 1px solid #dee2e6; text-align:center;">Số Lượng Tồn</th>
-                    {# <th style="padding: 10px; border: 1px solid #dee2e6;">Hành Động</th> #}
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in products %}
-                <tr>
-                    <td style="padding: 10px; border: 1px solid #dee2e6;">{{ product.id }}</td>
-                    <td style="padding: 10px; border: 1px solid #dee2e6;">{{ product.name }}</td>
-                    <td style="padding: 10px; border: 1px solid #dee2e6;">{{ product.category if product.category else 'Chưa phân loại' }}</td>
-                    <td style="padding: 10px; border: 1px solid #dee2e6; text-align:right;">
-                        {{ "{:,.0f}".format(product.price) if product.price is not none else 0 }} đ
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #dee2e6; text-align:center;">{{ product.qty }}</td>
-                    {#
-                    <td style="padding: 10px; border: 1px solid #dee2e6;">
-                        <a href="#" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i> Sửa</a>
-                    </td>
-                    #}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <div class="alert alert-info mt-3" role="alert">
-            Chưa có sản phẩm nào trong kho.
+            <div x-show="open" class="w-full mt-4 border-t border-gray-300 pt-4 space-y-4" @click.stop>
+                <div>
+                    <label :for="'input-qty-' + {{ product.id }}" class="block text-gray-800 font-semibold mb-2">Nhập thêm</label>
+                    <input type="number" :id="'input-qty-' + {{ product.id }}" min="1" x-model.number="inputQty" placeholder="Số lượng nhập" class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+                    <button @click="submitStock('nhap', {{ product.id }}, inputQty)" class="mt-3 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200">Xác nhận nhập</button>
+                </div>
+                <div>
+                    <label :for="'output-qty-' + {{ product.id }}" class="block text-gray-800 font-semibold mb-2">Xuất hàng</label>
+                    <input type="number" :id="'output-qty-' + {{ product.id }}" min="1" x-model.number="outputQty" placeholder="Số lượng xuất" class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+                    <button @click="submitStock('xuat', {{ product.id }}, outputQty)" class="mt-3 w-full bg-white border border-blue-600 text-blue-600 py-2 rounded-md hover:bg-blue-50 transition duration-200">Xác nhận xuất</button>
+                </div>
+            </div>
         </div>
-        {% endif %}
+        {% endfor %}
     </div>
+    {% else %}
+    <div class="text-center text-gray-500 mt-16 text-lg">
+        Chưa có sản phẩm nào trong kho.
+    </div>
+    {% endif %}
 </div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('stockManager', () => ({
+        async submitStock(action, productId, quantity) {
+            if (!quantity || quantity < 1) {
+                alert('Vui lòng nhập số lượng hợp lệ.');
+                return;
+            }
+            try {
+                const response = await fetch('/api/update-inventory-and-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scanned_data: productId,
+                        action: action,
+                        quantity: quantity
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.error || 'Có lỗi xảy ra khi cập nhật tồn kho.');
+                }
+            } catch (error) {
+                alert('Lỗi kết nối đến server.');
+            }
+        }
+    }));
+ });
+</script>
 {% endblock %}
